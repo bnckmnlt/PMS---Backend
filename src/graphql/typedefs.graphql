@@ -1,0 +1,282 @@
+enum UserRoles {
+  PERSONNEL
+  DOCTOR
+  ADMIN
+}
+
+enum TransactionStatus {
+  UNPAID
+  PAID
+}
+
+enum Specialization {
+  GENERAL_PRACTITIONER
+  INTERNAL_MEDICINE
+  NONE
+}
+
+enum CheckupStatus {
+  COMPLETED
+  EXPIRED
+  PENDING
+}
+
+enum DiscountCategory {
+  PWD_DISCOUNT
+  SENIOR_CITIZEN_DISCOUNT
+  PHILHEALTH_DISCOUNT
+  NONE
+}
+
+type User {
+  _id: ID!
+  userRole: UserRoles!
+  email: String!
+  password: String!
+  emailVerified: Boolean!
+  userInformation: UserInformation
+  createdAt: String!
+  updatedAt: String!
+}
+
+type UserInformation {
+  _id: ID!
+  user: User
+  firstName: String!
+  lastName: String!
+  middleName: String!
+  contactNumber: String!
+  specialization: Specialization
+  schedule: String
+  updatedAt: String!
+}
+
+# interface UserAuth {
+#   userRole: UserRoles!
+#   email: String!
+#   password: String!
+#   emailVerified: Boolean!
+#   userInformation: UserInformation
+# }
+
+input AddUserInformation {
+  _id: ID!
+  firstName: String!
+  lastName: String!
+  middleName: String!
+  contactNumber: String!
+  specialization: String
+  schedule: String
+}
+
+type Patient {
+  _id: ID!
+  transactions: [TransactionDetails]
+  status: CheckupStatus!
+  cardId: String
+  appointment: Appointment
+  doctor: String!
+  firstName: String!
+  lastName: String!
+  middleName: String!
+  age: Int!
+  contactNumber: String!
+  emailAddress: String!
+  bodyTemp: Int
+  heartRate: Int
+  weight: Int
+  allergy: String
+  findings: String
+  medications: String
+  createdAt: String
+  updatedAt: String!
+}
+
+input AddPatient {
+  cardId: String
+  firstName: String!
+  lastName: String!
+  middleName: String!
+  age: Int!
+  contactNumber: String!
+  emailAddress: String!
+  doctor: String!
+  bodyTemp: Int
+  heartRate: Int
+  weight: Int
+  allergy: String
+  findings: String
+  medications: String
+}
+
+input UpdatePatient {
+  _id: ID!
+  bodyTemp: Int
+  heartRate: Int
+  weight: Int
+  allergy: String
+  findings: String
+  medications: String
+  status: CheckupStatus
+}
+
+type Appointment {
+  _apid: ID!
+  schedule: String!
+  additionalInfo: String!
+  patientDetails: Patient!
+  createdAt: String!
+  updatedAt: String!
+}
+
+input SetAppointment {
+  schedule: String!
+  additionalInfo: String!
+  firstName: String!
+  lastName: String!
+  middleName: String!
+  age: Int!
+  contactNumber: String!
+  emailAddress: String!
+  doctor: String!
+  bodyTemp: Int
+  heartRate: Int
+  weight: Int
+  allergy: String
+}
+
+type TransactionDetails {
+  _tid: ID!
+  status: TransactionStatus!
+  paymentDetails: PaymentDetails
+  patientDetails: Patient
+  createdAt: String!
+  updatedAt: String!
+}
+
+type PaymentDetails {
+  _id: String
+  transactionDetails: TransactionDetails
+  subtotal: String!
+  additionalChargeDescription: String
+  additionalChargeAmount: String
+  discount: DiscountCategory
+  total: String
+  amountTendered: String
+  change: String
+}
+
+input AddTransaction {
+  _id: String
+  subtotal: String!
+  additionalChargeDescription: String
+  additionalChargeAmount: String
+}
+
+input UpdateTransaction {
+  _tid: String!
+  status: TransactionStatus!
+  discount: String!
+  total: String!
+  amountTendered: String!
+  change: String!
+}
+
+interface MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+
+interface QueryResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+
+type AuthPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  user: User
+  token: String!
+}
+
+type UserInfoPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  userInformation: UserInformation
+}
+
+type AppointmentPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  appointment: Appointment
+  patient: Patient
+}
+
+type PatientPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  patient: Patient
+}
+
+type TransactionPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  transaction: TransactionDetails
+}
+
+type Query {
+  users: [User]
+  getUser(email: String, _id: String): AuthPayload!
+  getUserInformation(_id: String!): UserInfoPayload!
+
+  appointments: [Appointment]
+  getAppointment(
+    contactNumber: String
+    cardId: String
+    _apid: String
+  ): AppointmentPayload!
+
+  patients: [Patient]
+  getPatient(
+    contactNumber: String
+    _id: String
+    cardId: String
+  ): PatientPayload!
+
+  transactions: [TransactionDetails]
+  getTransaction(
+    tid: String
+    cardId: String
+    contactNumber: String
+  ): TransactionPayload!
+}
+
+type Mutation {
+  register(userRole: UserRoles, email: String!, password: String!): AuthPayload!
+  loginUser(email: String!, password: String!): AuthPayload!
+  addUserInformation(input: AddUserInformation): UserInfoPayload!
+
+  setAppointment(input: SetAppointment): AppointmentPayload!
+  updateAppointment(
+    email: String
+    contactNumber: String
+    status: CheckupStatus!
+    _apid: ID
+  ): AppointmentPayload!
+  removeAppointment(contactNumber: String, _apid: String): AppointmentPayload!
+
+  addPatient(input: AddPatient): PatientPayload!
+  updatePatient(input: UpdatePatient): PatientPayload!
+  removePatient(id: String!): PatientPayload!
+
+  addTransaction(input: AddTransaction): TransactionPayload!
+  updateTransaction(input: UpdateTransaction): TransactionPayload!
+  removeTransaction(_tid: String): TransactionPayload!
+}
