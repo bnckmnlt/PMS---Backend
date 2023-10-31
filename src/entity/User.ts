@@ -19,7 +19,7 @@ export class User extends BaseEntity {
   @Column("text")
   userRole!: string;
 
-  @Column("varchar", { length: 255 })
+  @Column("text")
   email!: string;
 
   @Column("text")

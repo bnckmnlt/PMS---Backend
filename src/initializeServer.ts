@@ -2,28 +2,46 @@ import "reflect-metadata";
 import * as express from "express";
 import * as helmet from "helmet";
 import * as morgan from "morgan";
-import * as http from "http";
+import { createServer } from "http";
 import * as cors from "cors";
-import { readFileSync } from "fs";
+import { typeDefs } from "./graphql/typeDefs";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import { makeExecutableSchema } from "@graphql-tools/schema";
 import { resolvers } from "./graphql/resolvers";
 import { DevelopmentDataSource, TestDataSource } from "./data-source";
 import { corsOption } from "./config/cors-option";
-
-const app = express();
-const httpServer = http.createServer(app);
+import { WebSocketServer } from "ws";
+import { useServer } from "graphql-ws/lib/use/ws";
 
 export const initializeServer = async () => {
-  const typeDefs = readFileSync(
-    require.resolve("./graphql/typedefs.graphql")
-  ).toString("utf-8");
+  const app = express();
+  const httpServer = createServer(app);
+
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
+
+  const wsServer = new WebSocketServer({
+    server: httpServer,
+    path: "/subscriptions",
+  });
+  const serverCleanup = useServer({ schema }, wsServer);
 
   const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+    schema,
+    plugins: [
+      ApolloServerPluginDrainHttpServer({ httpServer }),
+
+      {
+        async serverWillStart() {
+          return {
+            async drainServer() {
+              await serverCleanup.dispose();
+            },
+          };
+        },
+      },
+    ],
   });
 
   if (process.env.NODE_ENV === "test") {
@@ -44,6 +62,7 @@ export const initializeServer = async () => {
       context: async ({ req }) => ({ token: req.headers.token }),
     })
   );
+
   app.use(
     "/",
     cors<cors.CorsRequest>(corsOption),

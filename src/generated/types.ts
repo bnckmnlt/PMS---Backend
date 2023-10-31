@@ -97,11 +97,13 @@ export type Mutation = {
   addPatient: PatientPayload;
   addTransaction: TransactionPayload;
   addUserInformation: UserInfoPayload;
+  deleteAccount: AuthPayload;
   loginUser: AuthPayload;
   register: AuthPayload;
   removeAppointment: AppointmentPayload;
   removePatient: PatientPayload;
   removeTransaction: TransactionPayload;
+  removeUser: AuthPayload;
   setAppointment: AppointmentPayload;
   updateAppointment: AppointmentPayload;
   updatePatient: PatientPayload;
@@ -121,6 +123,12 @@ export type MutationAddTransactionArgs = {
 
 export type MutationAddUserInformationArgs = {
   input?: InputMaybe<AddUserInformation>;
+};
+
+
+export type MutationDeleteAccountArgs = {
+  id: Scalars['String']['input'];
+  password: Scalars['String']['input'];
 };
 
 
@@ -150,6 +158,11 @@ export type MutationRemovePatientArgs = {
 
 export type MutationRemoveTransactionArgs = {
   _tid?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationRemoveUserArgs = {
+  id: Scalars['String']['input'];
 };
 
 
@@ -550,11 +563,13 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
   addPatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddPatientArgs>>;
   addTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<MutationAddTransactionArgs>>;
   addUserInformation?: Resolver<ResolversTypes['UserInfoPayload'], ParentType, ContextType, Partial<MutationAddUserInformationArgs>>;
+  deleteAccount?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationDeleteAccountArgs, 'id' | 'password'>>;
   loginUser?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginUserArgs, 'email' | 'password'>>;
   register?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'email' | 'password'>>;
   removeAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, Partial<MutationRemoveAppointmentArgs>>;
   removePatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, RequireFields<MutationRemovePatientArgs, 'id'>>;
   removeTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<MutationRemoveTransactionArgs>>;
+  removeUser?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRemoveUserArgs, 'id'>>;
   setAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, Partial<MutationSetAppointmentArgs>>;
   updateAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, RequireFields<MutationUpdateAppointmentArgs, 'status'>>;
   updatePatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationUpdatePatientArgs>>;

@@ -3,16 +3,18 @@ import * as bcrypt from "bcrypt";
 import { sign } from "jsonwebtoken";
 import {
   MutationAddUserInformationArgs,
+  MutationDeleteAccountArgs,
   MutationLoginUserArgs,
   MutationRegisterArgs,
+  MutationRemoveUserArgs,
   QueryGetUserArgs,
   QueryGetUserInformationArgs,
 } from "../generated/types";
 import { User } from "../entity/User";
 import { UserInformation } from "../entity/UserInformation";
-import { GraphQLError } from "graphql";
+import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import * as dotenv from "dotenv";
-dotenv.config().parsed;
+dotenv.config();
 
 const registerSchema = Joi.object({
   email: Joi.string()
@@ -38,7 +40,6 @@ const userInformationSchema = Joi.object({
 });
 
 class UserService {
-  // [x]: Get all users //
   async users() {
     return User.find({
       relations: {
@@ -47,138 +48,94 @@ class UserService {
     });
   }
 
-  // [x]: Get specific user //
   async getUser({ email, _id }: QueryGetUserArgs) {
     const getUser = await User.findOne({
       relations: {
         userInformation: true,
       },
-      where: [
-        {
-          email: email || "",
-        },
-        { _id: _id || "" },
-      ],
+      where: [{ _id: _id || "" }, { email: email || "" }],
     });
 
     if (!getUser) {
-      return {
-        code: 404,
-        success: false,
-        message: "No record/s found",
-      };
+      return throwCustomError("No existing user found", ErrorTypes.NOT_FOUND);
     }
 
     return {
       code: 200,
       success: true,
-      message: "User found",
+      message: "User located",
       user: getUser,
     };
   }
 
-  // [x]: Get user information of specific user //
   async getUserInformation({ _id }: QueryGetUserInformationArgs) {
-    try {
-      const userInfo = await UserInformation.findOne({
-        relations: {
-          user: true,
+    const userInfo = await UserInformation.findOne({
+      relations: {
+        user: true,
+      },
+      where: {
+        user: {
+          _id: _id,
         },
-        where: {
-          user: {
-            _id: _id,
-          },
-        },
-      });
+      },
+    });
 
-      if (!userInfo) {
-        return {
-          code: 404,
-          success: false,
-          message: "No record/s found",
-        };
-      }
-
-      return {
-        code: 200,
-        success: true,
-        message: "User information found",
-        userInformation: userInfo,
-      };
-    } catch (error) {
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+    if (!userInfo) {
+      return throwCustomError("No record found", ErrorTypes.NOT_FOUND);
     }
+
+    return {
+      code: 200,
+      success: true,
+      message: "User information located",
+      userInformation: userInfo,
+    };
   }
 
-  // [x]: Register a user
   async registerUser(args: MutationRegisterArgs) {
     try {
       await registerSchema.validateAsync(args, { abortEarly: false });
-    } catch (err) {
-      const { details } = err;
-      return {
-        code: 422,
-        success: false,
-        message: details[0].message,
-      };
+    } catch (error) {
+      return throwCustomError(error, ErrorTypes.BAD_USER_INPUT);
     }
     const { email, password, userRole } = args;
 
-    try {
-      const userFound = await User.findOne({
-        relations: {
-          userInformation: true,
-        },
-        where: {
-          email: email,
-        },
-      });
+    const userFound = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
+      where: {
+        email: email || "",
+      },
+    });
 
-      if (userFound) {
-        throw new GraphQLError("User record already exists", {
-          extensions: {
-            code: "CONFLICT",
-          },
-        });
-      }
-
-      const registerUser = User.create({
-        userRole: userRole || "PERSONNEL",
-        email,
-        password,
-      });
-
-      const res = await registerUser.save();
-      return {
-        code: 200,
-        success: true,
-        message: "Successfully registered",
-        user: res,
-      };
-    } catch (error) {
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+    if (userFound) {
+      return throwCustomError(
+        "User record already exists.",
+        ErrorTypes.CONFLICT
+      );
     }
+
+    const registerUser = User.create({
+      userRole: userRole || "PERSONNEL",
+      email,
+      password,
+    });
+
+    const res = await registerUser.save();
+    return {
+      code: 200,
+      success: true,
+      message: "Successfully registered",
+      user: res,
+    };
   }
 
-  // [x]: Login a user; needs more security
   async loginUser(args: MutationLoginUserArgs) {
     try {
       await registerSchema.validateAsync(args, { abortEarly: false });
-    } catch (err) {
-      const { details } = err;
-      return {
-        code: 422,
-        success: false,
-        message: details[0].message,
-      };
+    } catch (error) {
+      return throwCustomError(error, ErrorTypes.BAD_USER_INPUT);
     }
     const { email, password } = args;
 
@@ -192,102 +149,152 @@ class UserService {
     });
 
     if (!verifyUser) {
-      return {
-        code: 404,
-        success: false,
-        message: "User record not found",
-      };
+      return throwCustomError("User record not found.", ErrorTypes.NOT_FOUND);
     }
 
     const passwordMatched = await bcrypt.compare(password, verifyUser.password);
 
     if (!passwordMatched) {
-      return {
-        code: 402,
-        success: false,
-        message:
-          "Email/Password combination provided does not match our records",
-      };
+      return throwCustomError(
+        "Email/Password combination provided does not match our records.",
+        ErrorTypes.UNAUTHORIZED
+      );
     }
 
-    // const refreshToken = sign(
-    //   { uid: verifyUser._id, userRole: verifyUser.userRole },
-    //   process?.env?.JWT_REFRESH_SECRET || "",
-    //   { expiresIn: "1d" }
-    // );
-
-    const accessToken = sign(
-      { _id: verifyUser._id },
-      process.env.JWT_ACCESS_SECRET || "",
-      { expiresIn: 15 * 60 }
+    const refreshToken = sign(
+      { uid: verifyUser._id, userRole: verifyUser.userRole },
+      process?.env?.JWT_REFRESH_SECRET || "",
+      { expiresIn: "1d" }
     );
+
+    // const accessToken = sign(
+    //   { _id: verifyUser._id },
+    //   process.env.JWT_ACCESS_SECRET || "",
+    //   { expiresIn: 15 * 60 }
+    // );
 
     return {
       code: 200,
       success: true,
-      message: "Login successfully",
+      message: "Login successful.",
       user: verifyUser,
-      token: `Bearer ${accessToken}`,
+      token: `Bearer ${refreshToken}`,
     };
   }
 
-  // [x]: Add user information; needs
   async addUserInformation({ input }: MutationAddUserInformationArgs) {
     try {
       await userInformationSchema.validateAsync(input, { abortEarly: false });
-    } catch (err) {
-      const { details } = err;
-      return {
-        code: 422,
-        success: false,
-        message: details[0].message,
-      };
+    } catch (error) {
+      return throwCustomError(error, ErrorTypes.BAD_USER_INPUT);
     }
 
-    try {
-      const verifyUser = await User.findOne({
-        where: {
-          _id: input?._id,
-        },
-      });
+    const verifyUser = await User.findOne({
+      where: {
+        _id: input?._id,
+      },
+    });
 
-      if (!verifyUser) {
-        return {
-          code: 404,
-          success: false,
-          message: "User record not found",
-        };
-      }
-
-      const createUserInformation = UserInformation.create({
-        user: verifyUser,
-        firstName: input?.firstName,
-        lastName: input?.lastName,
-        middleName: input?.middleName,
-        contactNumber: input?.contactNumber,
-        specialization: input?.specialization || "NONE",
-        schedule: input?.schedule || "NONE",
-        updatedAt: new Date().toISOString(),
-      });
-
-      const res = await createUserInformation.save();
-      verifyUser.updatedAt = new Date().toISOString();
-      await verifyUser.save();
-
-      return {
-        code: 200,
-        success: true,
-        message: "User information updated",
-        userInformation: res,
-      };
-    } catch (err) {
-      const { details } = err;
-      return {
-        code: 400,
-        success: false,
-        message: details[0].message,
-      };
+    if (!verifyUser) {
+      return throwCustomError("No user found.", ErrorTypes.NOT_FOUND);
     }
+
+    const createUserInformation = UserInformation.create({
+      user: verifyUser,
+      firstName: input?.firstName,
+      lastName: input?.lastName,
+      middleName: input?.middleName,
+      contactNumber: input?.contactNumber,
+      specialization: input?.specialization || "NONE",
+      schedule: input?.schedule || "NONE",
+      updatedAt: new Date().toISOString(),
+    });
+
+    const res = await createUserInformation.save();
+    verifyUser.updatedAt = new Date().toISOString();
+    await verifyUser.save();
+
+    return {
+      code: 200,
+      success: true,
+      message: "User information updated",
+      userInformation: res,
+    };
+  }
+
+  async removeUser({ id }: MutationRemoveUserArgs) {
+    const getUser = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
+      where: {
+        _id: id,
+      },
+    });
+
+    if (!getUser) {
+      return throwCustomError(
+        "The ID provided does not match our records",
+        ErrorTypes.NOT_FOUND
+      );
+    }
+
+    const removeUser = await User.remove(getUser);
+
+    if (!removeUser) {
+      return throwCustomError(
+        "Something went wrong with the process",
+        ErrorTypes.BAD_REQUEST
+      );
+    }
+
+    return {
+      code: 200,
+      success: true,
+      message: "User has been removed",
+    };
+  }
+
+  async deleteAccount({ id, password }: MutationDeleteAccountArgs) {
+    const getUser = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
+      where: {
+        _id: id,
+      },
+    });
+
+    if (!getUser) {
+      return throwCustomError(
+        "User ID and user data does not match.",
+        ErrorTypes.UNAUTHORIZED
+      );
+    }
+
+    const passwordMatched = await bcrypt.compare(password, getUser.password);
+
+    if (!passwordMatched) {
+      return throwCustomError(
+        "Your password does not match.",
+        ErrorTypes.UNAUTHORIZED
+      );
+    }
+
+    const deleteAccount = await User.remove(getUser);
+
+    if (!deleteAccount) {
+      return throwCustomError(
+        "Something went wrong with the process",
+        ErrorTypes.BAD_REQUEST
+      );
+    }
+
+    return {
+      code: 200,
+      success: true,
+      message: "Your account has been deleted",
+    };
   }
 }
 

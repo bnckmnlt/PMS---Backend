@@ -15,6 +15,8 @@ import {
   MutationUpdatePatientArgs,
   MutationUpdateTransactionArgs,
   MutationRemoveTransactionArgs,
+  MutationRemoveUserArgs,
+  MutationDeleteAccountArgs,
 } from "../generated/types";
 
 const mutations = {
@@ -34,6 +36,18 @@ const mutations = {
     const addInformation = await UserService.addUserInformation(args);
 
     return addInformation;
+  },
+
+  removeUser: async (_: any, args: MutationRemoveUserArgs) => {
+    const removeUser = await UserService.removeUser(args);
+
+    return removeUser;
+  },
+
+  deleteAccount: async (_: any, args: MutationDeleteAccountArgs) => {
+    const deleteAccount = await UserService.deleteAccount(args);
+
+    return deleteAccount;
   },
 
   setAppointment: async (_: any, args: MutationSetAppointmentArgs) => {

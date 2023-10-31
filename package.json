@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@apollo/server": "^4.9.3",
+    "@graphql-tools/schema": "^10.0.0",
     "apollo-type-bigint": "^0.1.3",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
@@ -29,6 +30,7 @@
     "express": "^4.18.2",
     "graphql": "^16.8.1",
     "graphql-request": "^6.1.0",
+    "graphql-ws": "^5.14.2",
     "helmet": "^7.0.0",
     "http": "^0.0.1-security",
     "joi": "^17.10.2",
@@ -37,13 +39,14 @@
     "pg": "^8.11.3",
     "reflect-metadata": "^0.1.13",
     "typeorm": "0.3.17",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "ws": "^8.14.2"
   },
   "scripts": {
     "typeorm": "typeorm-ts-node-commonjs",
     "test": "set NODE_ENV=test&& jest --watch",
     "start": "set NODE_ENV=development&& nodemon --exec ts-node src/index.ts",
-    "gen-schema-types": "gql2ts src/graphql/typedefs.graphql -o src/types/typedefs.d.ts",
+    "gen-schema-types": "gql2ts src/graphql/schema.graphql -o src/types/typedefs.d.ts",
     "codegen": "graphql-codegen --config codegen.yml",
     "codegen-gen": "graphql-codegen --config codegen.ts"
   },

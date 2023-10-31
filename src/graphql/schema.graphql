@@ -262,6 +262,8 @@ type Mutation {
   register(userRole: UserRoles, email: String!, password: String!): AuthPayload!
   loginUser(email: String!, password: String!): AuthPayload!
   addUserInformation(input: AddUserInformation): UserInfoPayload!
+  removeUser(id: String!): AuthPayload!
+  deleteAccount(id: String!, password: String!): AuthPayload!
 
   setAppointment(input: SetAppointment): AppointmentPayload!
   updateAppointment(
