@@ -8,6 +8,7 @@ import {
   MutationUpdateTransactionArgs,
   QueryGetTransactionArgs,
 } from "../generated/types";
+import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 
 class TransactionService {
   async transactions() {
@@ -30,47 +31,38 @@ class TransactionService {
       contactNumber,
     };
 
-    try {
-      const transaction = await TransactionDetails.findOne({
-        relations: {
-          paymentDetails: true,
+    const transaction = await TransactionDetails.findOne({
+      relations: {
+        paymentDetails: true,
+      },
+      where: [
+        { _tid: input.tid },
+        {
+          patientDetails: {
+            cardId: input.cardId,
+          },
         },
-        where: [
-          { _tid: input.tid },
-          {
-            patientDetails: {
-              cardId: input.cardId,
-            },
+        {
+          patientDetails: {
+            contactNumber: input.contactNumber,
           },
-          {
-            patientDetails: {
-              contactNumber: input.contactNumber,
-            },
-          },
-        ],
-      });
+        },
+      ],
+    });
 
-      if (!transaction) {
-        return {
-          code: 404,
-          success: false,
-          message: "No transactin record/s found",
-        };
-      }
-
-      return {
-        code: 200,
-        success: true,
-        message: "Transaction records found",
-        transaction: transaction,
-      };
-    } catch (error) {
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+    if (!transaction) {
+      return throwCustomError(
+        "No transaction records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
     }
+
+    return {
+      code: 200,
+      success: true,
+      message: "Transaction records found",
+      transaction: transaction,
+    };
   }
 
   async addTransaction({ input }: MutationAddTransactionArgs) {
@@ -91,11 +83,10 @@ class TransactionService {
       });
 
       if (!getPatient) {
-        return {
-          code: 404,
-          success: false,
-          message: "No patient record/s found",
-        };
+        return throwCustomError(
+          "No patient records match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
       }
 
       const transaction = await TransactionDetails.findOne({
@@ -113,11 +104,10 @@ class TransactionService {
       });
 
       if (transaction) {
-        return {
-          code: 409,
-          success: false,
-          message: "Existing transaction found",
-        };
+        return throwCustomError(
+          "Transaction already exists",
+          ErrorTypes.CONFLICT
+        );
       }
 
       const createTransaction = TransactionDetails.create({
@@ -138,11 +128,10 @@ class TransactionService {
       });
 
       if (paymentDetails) {
-        return {
-          code: 409,
-          success: false,
-          message: "Existing payment detail already stored",
-        };
+        return throwCustomError(
+          "Payment details already exists for this transaction",
+          ErrorTypes.CONFLICT
+        );
       }
 
       const newPaymentDetails = PaymentDetails.create({
@@ -164,11 +153,7 @@ class TransactionService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
     } finally {
       await queryRunner.release();
     }
@@ -188,11 +173,10 @@ class TransactionService {
       });
 
       if (!transaction) {
-        return {
-          code: 404,
-          success: false,
-          message: "No transaction record found",
-        };
+        return throwCustomError(
+          "No transaction records match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
       }
 
       const updateTransaction = await TransactionDetails.preload({
@@ -223,54 +207,40 @@ class TransactionService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
     } finally {
       await queryRunner.release();
     }
   }
 
   async removeTransaction(args: MutationRemoveTransactionArgs) {
-    try {
-      const getTransaction = await TransactionDetails.findOne({
-        where: {
-          _tid: args._tid || "",
-        },
-      });
+    const getTransaction = await TransactionDetails.findOne({
+      where: {
+        _tid: args._tid || "",
+      },
+    });
 
-      if (!getTransaction) {
-        return {
-          code: 400,
-          success: false,
-          message: "No transaction record found",
-        };
-      }
-
-      const removeTransaction = await TransactionDetails.remove(getTransaction);
-
-      if (!removeTransaction) {
-        return {
-          code: 400,
-          success: false,
-          message: "Something went wrong",
-        };
-      }
-
-      return {
-        code: 200,
-        success: true,
-        message: "Transaction removed",
-      };
-    } catch (error) {
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+    if (!getTransaction) {
+      return throwCustomError(
+        "No transaction records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
     }
+
+    const removeTransaction = await TransactionDetails.remove(getTransaction);
+
+    if (!removeTransaction) {
+      return throwCustomError(
+        "Something went wrong with the process",
+        ErrorTypes.BAD_REQUEST
+      );
+    }
+
+    return {
+      code: 200,
+      success: true,
+      message: "Transaction removed",
+    };
   }
 }
 

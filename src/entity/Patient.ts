@@ -7,9 +7,11 @@ import {
   OneToOne,
   JoinColumn,
   OneToMany,
+  ManyToOne,
 } from "typeorm";
 import { Appointment } from "./Appointment";
 import { TransactionDetails } from "./TransactionDetails";
+import { User } from "./User";
 
 @Entity("patients")
 export class Patient extends BaseEntity {
@@ -20,7 +22,7 @@ export class Patient extends BaseEntity {
   status!: string;
 
   @Column("varchar", { length: 255, default: "" })
-  cardId: string;
+  cardId!: string;
 
   @OneToOne(() => Appointment, (appointment) => appointment.patientDetails)
   @JoinColumn()
@@ -33,8 +35,8 @@ export class Patient extends BaseEntity {
   @JoinColumn()
   transactions: TransactionDetails[];
 
-  @Column("text")
-  doctor!: string;
+  @ManyToOne(() => User, (user) => user.userInformation.patients)
+  doctor!: User;
 
   @Column("varchar", { length: 255 })
   firstName!: string;
@@ -55,21 +57,21 @@ export class Patient extends BaseEntity {
   emailAddress!: string;
 
   @Column("text")
-  bodyTemp: number;
+  bodyTemp!: number;
 
   @Column("text")
-  heartRate: number;
+  heartRate!: number;
 
   @Column("text")
-  weight: number;
+  weight!: number;
 
-  @Column("text")
+  @Column("text", { default: "none" })
   allergy: string;
 
-  @Column("text")
+  @Column("text", { default: "none" })
   findings: string;
 
-  @Column("text")
+  @Column("text", { default: "none" })
   medications: string;
 
   @Column("text", { default: new Date().toISOString() })

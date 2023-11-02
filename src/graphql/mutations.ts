@@ -17,7 +17,9 @@ import {
   MutationRemoveTransactionArgs,
   MutationRemoveUserArgs,
   MutationDeleteAccountArgs,
+  MutationAddPatientResultArgs,
 } from "../generated/types";
+import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 
 const mutations = {
   register: async (_: any, args: MutationRegisterArgs) => {
@@ -68,7 +70,14 @@ const mutations = {
     return setAppointment;
   },
 
-  addPatient: async (_: any, args: MutationAddPatientArgs) => {
+  addPatient: async (_: any, args: MutationAddPatientArgs, context: any) => {
+    if (context.user.userRole !== "PERSONNEL") {
+      return throwCustomError(
+        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+        ErrorTypes.FORBIDDEN
+      );
+    }
+
     const addPatient = await PatientService.addPatient(args);
 
     return addPatient;
@@ -76,6 +85,23 @@ const mutations = {
 
   updatePatient: async (_: any, args: MutationUpdatePatientArgs) => {
     const updatePatient = await PatientService.updatePatient(args);
+
+    return updatePatient;
+  },
+
+  addPatientResult: async (
+    _: any,
+    args: MutationAddPatientResultArgs,
+    context: any
+  ) => {
+    if (context.user.userRole !== "DOCTOR") {
+      return throwCustomError(
+        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+        ErrorTypes.FORBIDDEN
+      );
+    }
+
+    const updatePatient = await PatientService.addPatientResult(args);
 
     return updatePatient;
   },
@@ -92,13 +118,39 @@ const mutations = {
     return addPatient;
   },
 
-  updateTransaction: async (_: any, args: MutationUpdateTransactionArgs) => {
+  updateTransaction: async (
+    _: any,
+    args: MutationUpdateTransactionArgs,
+    context: any
+  ) => {
+    if (context.user.userRole) {
+      if (context.user.userRole !== "PERSONNEL") {
+        return throwCustomError(
+          "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+          ErrorTypes.FORBIDDEN
+        );
+      }
+    }
+
     const updateTransaction = await TransactionService.updateTransaction(args);
 
     return updateTransaction;
   },
 
-  removeTransaction: async (_: any, args: MutationRemoveTransactionArgs) => {
+  removeTransaction: async (
+    _: any,
+    args: MutationRemoveTransactionArgs,
+    context: any
+  ) => {
+    if (context.user.userRole) {
+      if (context.user.userRole !== "PERSONNEL") {
+        return throwCustomError(
+          "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+          ErrorTypes.FORBIDDEN
+        );
+      }
+    }
+
     const removeTransaction = await TransactionService.removeTransaction(args);
 
     return removeTransaction;

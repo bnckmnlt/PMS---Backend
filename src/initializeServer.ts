@@ -2,18 +2,21 @@ import "reflect-metadata";
 import * as express from "express";
 import * as helmet from "helmet";
 import * as morgan from "morgan";
-import { createServer } from "http";
 import * as cors from "cors";
+import * as dotenv from "dotenv";
+import { corsOption } from "./config/cors-option";
+import { authUtilities } from "./helpers/auth.helper";
+import { DevelopmentDataSource, TestDataSource } from "./data-source";
+import { createServer } from "http";
 import { typeDefs } from "./graphql/typeDefs";
+import { resolvers } from "./graphql/resolvers";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import { resolvers } from "./graphql/resolvers";
-import { DevelopmentDataSource, TestDataSource } from "./data-source";
-import { corsOption } from "./config/cors-option";
 import { WebSocketServer } from "ws";
 import { useServer } from "graphql-ws/lib/use/ws";
+dotenv.config();
 
 export const initializeServer = async () => {
   const app = express();
@@ -29,6 +32,7 @@ export const initializeServer = async () => {
 
   const server = new ApolloServer({
     schema,
+    // context: AuthMiddleware,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
 
@@ -59,7 +63,7 @@ export const initializeServer = async () => {
     helmet.crossOriginResourcePolicy({ policy: "cross-origin" }),
     morgan("dev"),
     expressMiddleware(server, {
-      context: async ({ req }) => ({ token: req.headers.token }),
+      context: authUtilities.authMiddleware,
     })
   );
 

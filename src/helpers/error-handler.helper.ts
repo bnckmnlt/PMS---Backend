@@ -14,6 +14,10 @@ export const ErrorTypes = {
     errorCode: "UNAUTHORIZED",
     errorStatus: 401,
   },
+  FORBIDDEN: {
+    errorCode: "FORBIDDEN",
+    errorStatus: 403,
+  },
   NOT_FOUND: {
     errorCode: "NOT_FOUND",
     errorStatus: 404,

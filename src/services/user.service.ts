@@ -1,6 +1,5 @@
 import * as Joi from "joi";
 import * as bcrypt from "bcrypt";
-import { sign } from "jsonwebtoken";
 import {
   MutationAddUserInformationArgs,
   MutationDeleteAccountArgs,
@@ -13,8 +12,7 @@ import {
 import { User } from "../entity/User";
 import { UserInformation } from "../entity/UserInformation";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
-import * as dotenv from "dotenv";
-dotenv.config();
+import { authUtilities } from "../helpers/auth.helper";
 
 const registerSchema = Joi.object({
   email: Joi.string()
@@ -57,7 +55,10 @@ class UserService {
     });
 
     if (!getUser) {
-      return throwCustomError("No existing user found", ErrorTypes.NOT_FOUND);
+      return throwCustomError(
+        "No user records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
     }
 
     return {
@@ -81,7 +82,10 @@ class UserService {
     });
 
     if (!userInfo) {
-      return throwCustomError("No record found", ErrorTypes.NOT_FOUND);
+      return throwCustomError(
+        "User information does not exist in the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
     }
 
     return {
@@ -111,7 +115,7 @@ class UserService {
 
     if (userFound) {
       return throwCustomError(
-        "User record already exists.",
+        "User record already exists",
         ErrorTypes.CONFLICT
       );
     }
@@ -149,7 +153,10 @@ class UserService {
     });
 
     if (!verifyUser) {
-      return throwCustomError("User record not found.", ErrorTypes.NOT_FOUND);
+      return throwCustomError(
+        "No user records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
     }
 
     const passwordMatched = await bcrypt.compare(password, verifyUser.password);
@@ -161,24 +168,34 @@ class UserService {
       );
     }
 
-    const refreshToken = sign(
-      { uid: verifyUser._id, userRole: verifyUser.userRole },
-      process?.env?.JWT_REFRESH_SECRET || "",
-      { expiresIn: "1d" }
+    const refreshToken = authUtilities.signToken(
+      {
+        uid: verifyUser._id,
+        userRole: verifyUser.userRole,
+      },
+      {
+        expiresIn: "1d",
+      }
     );
 
-    // const accessToken = sign(
-    //   { _id: verifyUser._id },
-    //   process.env.JWT_ACCESS_SECRET || "",
-    //   { expiresIn: 15 * 60 }
-    // );
+    const accessToken = authUtilities.signToken(
+      {
+        userRole: verifyUser.userRole,
+        firstname: verifyUser.userInformation.firstName,
+        lastname: verifyUser.userInformation.lastName,
+        middleName: verifyUser.userInformation.middleName,
+        specialization: verifyUser.userInformation.specialization,
+      },
+      { expiresIn: 15 * 60 }
+    );
 
     return {
       code: 200,
       success: true,
       message: "Login successful.",
       user: verifyUser,
-      token: `Bearer ${refreshToken}`,
+      refreshToken: refreshToken,
+      accessToken: accessToken,
     };
   }
 
@@ -196,7 +213,10 @@ class UserService {
     });
 
     if (!verifyUser) {
-      return throwCustomError("No user found.", ErrorTypes.NOT_FOUND);
+      return throwCustomError(
+        "No user records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
     }
 
     const createUserInformation = UserInformation.create({
@@ -234,7 +254,7 @@ class UserService {
 
     if (!getUser) {
       return throwCustomError(
-        "The ID provided does not match our records",
+        "No user records match the input criteria",
         ErrorTypes.NOT_FOUND
       );
     }
@@ -267,8 +287,8 @@ class UserService {
 
     if (!getUser) {
       return throwCustomError(
-        "User ID and user data does not match.",
-        ErrorTypes.UNAUTHORIZED
+        "No user records match the input criteria",
+        ErrorTypes.NOT_FOUND
       );
     }
 

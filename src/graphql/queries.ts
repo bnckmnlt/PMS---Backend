@@ -10,6 +10,7 @@ import {
   QueryGetUserInformationArgs,
   QueryGetTransactionArgs,
 } from "../generated/types";
+import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 
 const queries = {
   users: async () => {
@@ -37,7 +38,7 @@ const queries = {
     return getAppointment;
   },
 
-  patients: async () => {
+  patients: async (_: any, _args: any) => {
     return PatientService.patients();
   },
 
@@ -47,7 +48,14 @@ const queries = {
     return getPatient;
   },
 
-  transactions: async () => {
+  transactions: async (_: any, _args: any, context: any) => {
+    if (context.user.userRole !== "PERSONNEL") {
+      return throwCustomError(
+        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+        ErrorTypes.FORBIDDEN
+      );
+    }
+
     return TransactionService.transactions();
   },
 

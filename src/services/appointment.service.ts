@@ -1,3 +1,4 @@
+import { UserInformation } from "../entity/UserInformation";
 import { DevelopmentDataSource } from "../data-source";
 import { Appointment } from "../entity/Appointment";
 import { Patient } from "../entity/Patient";
@@ -7,9 +8,9 @@ import {
   MutationUpdateAppointmentArgs,
   QueryGetAppointmentArgs,
 } from "../generated/types";
+import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 
 class AppointmentService {
-  // [x]: Get all appointments
   async appointments() {
     return Appointment.find({
       relations: {
@@ -18,7 +19,6 @@ class AppointmentService {
     });
   }
 
-  // [x]: Get a specific appointment; needs optimization
   async getAppointment({
     contactNumber,
     cardId,
@@ -30,36 +30,30 @@ class AppointmentService {
       _apid,
     };
 
-    try {
-      const appointment = await Appointment.findOne({
-        relations: { patientDetails: true },
-        where: [
-          { _apid: input._apid },
-          { patientDetails: { contactNumber: input.contactNumber } },
-          { patientDetails: { cardId: input.cardId } },
-        ],
-      });
+    const appointment = await Appointment.findOne({
+      relations: { patientDetails: true },
+      where: [
+        { _apid: input._apid },
+        { patientDetails: { contactNumber: input.contactNumber } },
+        { patientDetails: { cardId: input.cardId } },
+      ],
+    });
 
-      if (!appointment) {
-        return {
-          code: 404,
-          success: false,
-          message: "No appointment record/s found",
-        };
-      }
-
-      return {
-        code: 200,
-        success: true,
-        message: "Appointment record found",
-        appointment: appointment,
-      };
-    } catch (error) {
-      return { code: 400, success: false, message: error.message };
+    if (!appointment) {
+      return throwCustomError(
+        "No appointment records match the input criteria.",
+        ErrorTypes.NOT_FOUND
+      );
     }
+
+    return {
+      code: 200,
+      success: true,
+      message: "Appointment record found",
+      appointment: appointment,
+    };
   }
 
-  // [x]: Create appointment
   async setAppointment({ input }: MutationSetAppointmentArgs) {
     const queryRunner = DevelopmentDataSource.createQueryRunner();
 
@@ -67,6 +61,9 @@ class AppointmentService {
     await queryRunner.startTransaction();
     try {
       const patient = await Patient.findOne({
+        relations: {
+          doctor: true,
+        },
         where: [
           { emailAddress: input?.emailAddress },
           { contactNumber: input?.contactNumber },
@@ -74,15 +71,27 @@ class AppointmentService {
       });
 
       if (patient) {
-        return {
-          code: 409,
-          success: false,
-          message: "Patient record already exists",
-        };
+        return throwCustomError(
+          "Patient record already exists",
+          ErrorTypes.CONFLICT
+        );
+      }
+
+      const consultant = await UserInformation.findOne({
+        relations: {
+          patients: true,
+        },
+        where: {
+          _id: input?.doctor,
+        },
+      });
+
+      if (!consultant) {
+        return throwCustomError("Consultant not found", ErrorTypes.NOT_FOUND);
       }
 
       const newPatient = Patient.create({
-        doctor: input?.doctor,
+        doctor: consultant,
         firstName: input?.firstName,
         lastName: input?.lastName,
         middleName: input?.middleName,
@@ -104,11 +113,10 @@ class AppointmentService {
       });
 
       if (appointment) {
-        return {
-          code: 409,
-          success: false,
-          message: "Appointment record already exists",
-        };
+        return throwCustomError(
+          "Appointment record already exists",
+          ErrorTypes.CONFLICT
+        );
       }
 
       const newAppointment = Appointment.create({
@@ -130,17 +138,12 @@ class AppointmentService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
     } finally {
       await queryRunner.release();
     }
   }
 
-  // [x]: Update existing appointment status; needs optimization
   async updateAppointment({
     email,
     contactNumber,
@@ -154,44 +157,38 @@ class AppointmentService {
       status,
     };
 
-    try {
-      const appointment = await Appointment.findOne({
-        relations: {
-          patientDetails: true,
-        },
-        where: [
-          { _apid: input._apid },
-          { patientDetails: { emailAddress: input.email } },
-          { patientDetails: { contactNumber: input.contactNumber } },
-        ],
-      });
+    const appointment = await Appointment.findOne({
+      relations: {
+        patientDetails: true,
+      },
+      where: [
+        { _apid: input._apid },
+        { patientDetails: { emailAddress: input.email } },
+        { patientDetails: { contactNumber: input.contactNumber } },
+      ],
+    });
 
-      if (!appointment) {
-        return {
-          code: 404,
-          success: false,
-          message: "No appointment record/s found",
-        };
-      }
-
-      const patientResponse = await Patient.preload({
-        _id: appointment.patientDetails._id,
-        status: "COMPLETED",
-        updatedAt: new Date().toISOString(),
-      });
-
-      return {
-        code: 200,
-        success: true,
-        message: "Appointment updated",
-        patient: patientResponse,
-      };
-    } catch (error) {
-      return { code: 400, success: false, message: error.message };
+    if (!appointment) {
+      return throwCustomError(
+        "No appointment records match the input criteria.",
+        ErrorTypes.NOT_FOUND
+      );
     }
+
+    const patientResponse = await Patient.preload({
+      _id: appointment.patientDetails._id,
+      status: "COMPLETED",
+      updatedAt: new Date().toISOString(),
+    });
+
+    return {
+      code: 200,
+      success: true,
+      message: "Appointment updated",
+      patient: patientResponse,
+    };
   }
 
-  // [x]: Cancel patient appointment (only valid for 1 hour since appointment creation)
   async removeAppointment({
     contactNumber,
     _apid,
@@ -221,11 +218,10 @@ class AppointmentService {
       });
 
       if (!appointment) {
-        return {
-          code: 404,
-          success: false,
-          message: "No appointment record/s found",
-        };
+        return throwCustomError(
+          "No appointment records match the input criteria.",
+          ErrorTypes.NOT_FOUND
+        );
       }
 
       const timeCreated: any = appointment.createdAt;
@@ -233,11 +229,10 @@ class AppointmentService {
       const timeDifference = currentDate - timeCreated;
 
       if (timeDifference >= 3600000) {
-        return {
-          code: 400,
-          success: false,
-          message: "Cannot cancel appointment",
-        };
+        return throwCustomError(
+          "Appointment cannot be canceled, as it's past the 1-hour limit.",
+          ErrorTypes.BAD_REQUEST
+        );
       }
 
       await Appointment.remove(appointment);
@@ -250,11 +245,7 @@ class AppointmentService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return {
-        code: 400,
-        success: false,
-        message: error.message,
-      };
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
     } finally {
       await queryRunner.release();
     }

@@ -3,9 +3,12 @@ import {
   BaseEntity,
   Column,
   Entity,
+  JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
+import { Patient } from "./Patient";
 import { User } from "./User";
 
 @Entity("users_information")
@@ -33,6 +36,10 @@ export class UserInformation extends BaseEntity {
 
   @Column("text")
   schedule: string;
+
+  @OneToMany(() => Patient, (patient) => patient.doctor)
+  @JoinColumn()
+  patients: Patient[];
 
   @Column("text", { default: new Date().toISOString() })
   updatedAt!: string;

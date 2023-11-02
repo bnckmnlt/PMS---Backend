@@ -48,16 +48,9 @@ type UserInformation {
   contactNumber: String!
   specialization: Specialization
   schedule: String
+  patients: [Patient]
   updatedAt: String!
 }
-
-# interface UserAuth {
-#   userRole: UserRoles!
-#   email: String!
-#   password: String!
-#   emailVerified: Boolean!
-#   userInformation: UserInformation
-# }
 
 input AddUserInformation {
   _id: ID!
@@ -75,7 +68,7 @@ type Patient {
   status: CheckupStatus!
   cardId: String
   appointment: Appointment
-  doctor: String!
+  doctor: User!
   firstName: String!
   lastName: String!
   middleName: String!
@@ -93,7 +86,7 @@ type Patient {
 }
 
 input AddPatient {
-  cardId: String
+  cardId: String!
   firstName: String!
   lastName: String!
   middleName: String!
@@ -101,23 +94,31 @@ input AddPatient {
   contactNumber: String!
   emailAddress: String!
   doctor: String!
-  bodyTemp: Int
-  heartRate: Int
-  weight: Int
-  allergy: String
-  findings: String
-  medications: String
+  bodyTemp: Int!
+  heartRate: Int!
+  weight: Int!
 }
 
 input UpdatePatient {
   _id: ID!
+  firstName: String
+  lastName: String
+  middleName: String
+  age: Int
+  contactNumber: String
+  emailAddress: String
+  doctor: String
   bodyTemp: Int
   heartRate: Int
-  weight: Int
-  allergy: String
-  findings: String
-  medications: String
-  status: CheckupStatus
+}
+
+input AddPatientResult {
+  _id: ID!
+  weight: Int!
+  allergy: String!
+  findings: String!
+  medications: String!
+  status: CheckupStatus!
 }
 
 type Appointment {
@@ -199,7 +200,8 @@ type AuthPayload implements MutationResponse {
   success: Boolean!
   message: String!
   user: User
-  token: String!
+  refreshToken: String!
+  accessToken: String!
 }
 
 type UserInfoPayload implements MutationResponse {
@@ -276,9 +278,14 @@ type Mutation {
 
   addPatient(input: AddPatient): PatientPayload!
   updatePatient(input: UpdatePatient): PatientPayload!
+  addPatientResult(input: AddPatientResult): PatientPayload!
   removePatient(id: String!): PatientPayload!
 
   addTransaction(input: AddTransaction): TransactionPayload!
   updateTransaction(input: UpdateTransaction): TransactionPayload!
   removeTransaction(_tid: String): TransactionPayload!
+}
+
+type Subscriptions {
+  patientAdded(doctor: String): PatientPayload
 }
