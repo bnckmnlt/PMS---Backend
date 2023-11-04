@@ -42,8 +42,6 @@ export type AddPatientResult = {
 
 export type AddTransaction = {
   _id?: InputMaybe<Scalars['String']['input']>;
-  additionalChargeAmount?: InputMaybe<Scalars['String']['input']>;
-  additionalChargeDescription?: InputMaybe<Scalars['String']['input']>;
   subtotal: Scalars['String']['input'];
 };
 
@@ -325,14 +323,14 @@ export enum Specialization {
   None = 'NONE'
 }
 
-export type Subscriptions = {
-  __typename?: 'Subscriptions';
-  patientAdded?: Maybe<PatientPayload>;
+export type Subscription = {
+  __typename?: 'Subscription';
+  patientAdded?: Maybe<Patient>;
 };
 
 
-export type SubscriptionsPatientAddedArgs = {
-  doctor?: InputMaybe<Scalars['String']['input']>;
+export type SubscriptionPatientAddedArgs = {
+  id?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type TransactionDetails = {
@@ -373,11 +371,13 @@ export type UpdatePatient = {
 
 export type UpdateTransaction = {
   _tid: Scalars['String']['input'];
-  amountTendered: Scalars['String']['input'];
-  change: Scalars['String']['input'];
-  discount: Scalars['String']['input'];
+  additionalChargeAmount?: InputMaybe<Scalars['Int']['input']>;
+  additionalChargeDescription?: InputMaybe<Scalars['String']['input']>;
+  amountTendered: Scalars['Int']['input'];
+  change: Scalars['Int']['input'];
+  discount: DiscountCategory;
   status: TransactionStatus;
-  total: Scalars['String']['input'];
+  total: Scalars['Int']['input'];
 };
 
 export type User = {
@@ -518,7 +518,7 @@ export type ResolversTypes = {
   SetAppointment: SetAppointment;
   Specialization: Specialization;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  Subscriptions: ResolverTypeWrapper<Subscriptions>;
+  Subscription: ResolverTypeWrapper<{}>;
   TransactionDetails: ResolverTypeWrapper<TransactionDetails>;
   TransactionPayload: ResolverTypeWrapper<TransactionPayload>;
   TransactionStatus: TransactionStatus;
@@ -551,7 +551,7 @@ export type ResolversParentTypes = {
   QueryResponse: ResolversInterfaceTypes<ResolversParentTypes>['QueryResponse'];
   SetAppointment: SetAppointment;
   String: Scalars['String']['output'];
-  Subscriptions: Subscriptions;
+  Subscription: {};
   TransactionDetails: TransactionDetails;
   TransactionPayload: TransactionPayload;
   UpdatePatient: UpdatePatient;
@@ -679,9 +679,8 @@ export type QueryResponseResolvers<ContextType = any, ParentType extends Resolve
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
 };
 
-export type SubscriptionsResolvers<ContextType = any, ParentType extends ResolversParentTypes['Subscriptions'] = ResolversParentTypes['Subscriptions']> = {
-  patientAdded?: Resolver<Maybe<ResolversTypes['PatientPayload']>, ParentType, ContextType, Partial<SubscriptionsPatientAddedArgs>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+export type SubscriptionResolvers<ContextType = any, ParentType extends ResolversParentTypes['Subscription'] = ResolversParentTypes['Subscription']> = {
+  patientAdded?: SubscriptionResolver<Maybe<ResolversTypes['Patient']>, "patientAdded", ParentType, ContextType, Partial<SubscriptionPatientAddedArgs>>;
 };
 
 export type TransactionDetailsResolvers<ContextType = any, ParentType extends ResolversParentTypes['TransactionDetails'] = ResolversParentTypes['TransactionDetails']> = {
@@ -747,7 +746,7 @@ export type Resolvers<ContextType = any> = {
   PaymentDetails?: PaymentDetailsResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   QueryResponse?: QueryResponseResolvers<ContextType>;
-  Subscriptions?: SubscriptionsResolvers<ContextType>;
+  Subscription?: SubscriptionResolvers<ContextType>;
   TransactionDetails?: TransactionDetailsResolvers<ContextType>;
   TransactionPayload?: TransactionPayloadResolvers<ContextType>;
   User?: UserResolvers<ContextType>;

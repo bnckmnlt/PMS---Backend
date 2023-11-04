@@ -1,4 +1,3 @@
-import { DevelopmentDataSource } from "../data-source";
 import { Patient } from "../entity/Patient";
 import {
   MutationAddPatientArgs,
@@ -9,6 +8,7 @@ import {
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import { User } from "../entity/User";
+import { publishPatientRecord } from "../graphql/subscriptions";
 
 class PatientService {
   async patients() {
@@ -105,6 +105,8 @@ class PatientService {
     });
 
     const patientResponse = await newPatient.save();
+
+    publishPatientRecord(patientResponse);
 
     return {
       code: 200,
@@ -217,38 +219,26 @@ class PatientService {
   }
 
   async removePatient({ id }: MutationRemovePatientArgs) {
-    const queryRunner = DevelopmentDataSource.createQueryRunner();
+    const patient = await Patient.findOne({
+      where: {
+        _id: id,
+      },
+    });
 
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const patient = await Patient.findOne({
-        where: {
-          _id: id,
-        },
-      });
-
-      if (!patient) {
-        return throwCustomError(
-          "No patient records match the input criteria",
-          ErrorTypes.NOT_FOUND
-        );
-      }
-
-      await Patient.remove(patient);
-      await queryRunner.commitTransaction();
-
-      return {
-        code: 200,
-        success: true,
-        message: "Patient deleted",
-      };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
-    } finally {
-      await queryRunner.release();
+    if (!patient) {
+      return throwCustomError(
+        "No patient records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
     }
+
+    await Patient.remove(patient);
+
+    return {
+      code: 200,
+      success: true,
+      message: "Patient deleted",
+    };
   }
 }
 

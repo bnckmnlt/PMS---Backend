@@ -69,8 +69,6 @@ class TransactionService {
     const inputs: any = {
       _id: input?._id,
       subtotal: input?.subtotal,
-      additionalChargeDescription: input?.additionalChargeDescription || "NONE",
-      additionalChargeAmount: input?.additionalChargeAmount || "0",
     };
 
     const queryRunner = DevelopmentDataSource.createQueryRunner();
@@ -137,9 +135,6 @@ class TransactionService {
       const newPaymentDetails = PaymentDetails.create({
         transactionDetails: transactionResponse,
         subtotal: input?.subtotal,
-        additionalChargeDescription:
-          input?.additionalChargeDescription || "NONE",
-        additionalChargeAmount: input?.additionalChargeAmount || "0",
       });
 
       await queryRunner.manager.save(newPaymentDetails);
@@ -160,57 +155,54 @@ class TransactionService {
   }
 
   async updateTransaction({ input }: MutationUpdateTransactionArgs) {
-    const queryRunner = DevelopmentDataSource.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const transaction = await TransactionDetails.findOne({
-        relations: { paymentDetails: true, patientDetails: true },
-        where: {
-          _tid: input?._tid || "",
+    const transaction = await TransactionDetails.findOne({
+      relations: {
+        paymentDetails: true,
+        patientDetails: {
+          doctor: true,
+          appointment: true,
         },
-      });
+      },
+      where: {
+        _tid: input?._tid || "",
+      },
+    });
 
-      if (!transaction) {
-        return throwCustomError(
-          "No transaction records match the input criteria",
-          ErrorTypes.NOT_FOUND
-        );
-      }
+    if (!transaction) {
+      return throwCustomError(
+        "No transaction records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
+    }
 
-      const updateTransaction = await TransactionDetails.preload({
-        _tid: transaction._tid,
+    await TransactionDetails.update(
+      { _tid: transaction._tid },
+      {
         status: input?.status,
-        updatedAt: new Date().toISOString(),
-      });
+      }
+    );
 
-      await queryRunner.manager.save(updateTransaction);
-
-      const updatePaymentDetails = await PaymentDetails.preload({
-        _id: transaction.paymentDetails._id,
+    await PaymentDetails.update(
+      {
+        _id: transaction._tid,
+      },
+      {
+        additionalChargeDescription:
+          input?.additionalChargeDescription || "NONE",
+        additionalChargeAmount: input?.additionalChargeAmount || 0,
         discount: input?.discount,
         total: input?.total,
         amountTendered: input?.amountTendered,
         change: input?.change,
-      });
+      }
+    );
 
-      await queryRunner.manager.save(updatePaymentDetails);
-
-      await queryRunner.commitTransaction();
-
-      return {
-        code: 200,
-        success: true,
-        message: "Transaction updated",
-        transaction: transaction,
-      };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
-    } finally {
-      await queryRunner.release();
-    }
+    return {
+      code: 200,
+      success: true,
+      message: "Transaction updated",
+      transaction: transaction,
+    };
   }
 
   async removeTransaction(args: MutationRemoveTransactionArgs) {

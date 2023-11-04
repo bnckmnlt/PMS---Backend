@@ -1,5 +1,6 @@
 import {
   BaseEntity,
+  BeforeInsert,
   Column,
   Entity,
   OneToOne,
@@ -25,17 +26,22 @@ export class PaymentDetails extends BaseEntity {
   additionalChargeDescription: string;
 
   @Column("text", { default: 0 })
-  additionalChargeAmount: string;
+  additionalChargeAmount: number;
 
   @Column("text", { default: "NONE" })
   discount: string;
 
-  @Column("text", { default: "0" })
-  total: string;
+  @Column("text", { default: 0 })
+  total: number;
 
-  @Column("text", { default: "0" })
-  amountTendered: string;
+  @Column("text", { default: 0 })
+  amountTendered: number;
 
-  @Column("text", { default: "0" })
-  change: string;
+  @Column("text", { default: 0 })
+  change: number;
+
+  @BeforeInsert()
+  function() {
+    this._id = this.transactionDetails._tid;
+  }
 }

@@ -70,13 +70,13 @@ const mutations = {
     return setAppointment;
   },
 
-  addPatient: async (_: any, args: MutationAddPatientArgs, context: any) => {
-    if (context.user.userRole !== "PERSONNEL") {
-      return throwCustomError(
-        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
-        ErrorTypes.FORBIDDEN
-      );
-    }
+  addPatient: async (_: any, args: MutationAddPatientArgs) => {
+    // if (context.user.userRole !== "PERSONNEL") {
+    //   return throwCustomError(
+    //     "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+    //     ErrorTypes.FORBIDDEN
+    //   );
+    // }
 
     const addPatient = await PatientService.addPatient(args);
 

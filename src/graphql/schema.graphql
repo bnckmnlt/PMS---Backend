@@ -1,3 +1,5 @@
+#graphql
+
 enum UserRoles {
   PERSONNEL
   DOCTOR
@@ -170,17 +172,17 @@ type PaymentDetails {
 input AddTransaction {
   _id: String
   subtotal: String!
-  additionalChargeDescription: String
-  additionalChargeAmount: String
 }
 
 input UpdateTransaction {
   _tid: String!
   status: TransactionStatus!
-  discount: String!
-  total: String!
-  amountTendered: String!
-  change: String!
+  additionalChargeDescription: String
+  additionalChargeAmount: Int
+  discount: DiscountCategory!
+  total: Int!
+  amountTendered: Int!
+  change: Int!
 }
 
 interface MutationResponse {
@@ -286,6 +288,6 @@ type Mutation {
   removeTransaction(_tid: String): TransactionPayload!
 }
 
-type Subscriptions {
-  patientAdded(doctor: String): PatientPayload
+type Subscription {
+  patientAdded(id: String): Patient
 }
