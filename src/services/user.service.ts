@@ -180,6 +180,7 @@ class UserService {
 
     const accessToken = authUtilities.signToken(
       {
+        _id: verifyUser._id,
         userRole: verifyUser.userRole,
         firstname: verifyUser.userInformation.firstName,
         lastname: verifyUser.userInformation.lastName,

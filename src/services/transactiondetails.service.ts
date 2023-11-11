@@ -14,7 +14,11 @@ class TransactionService {
   async transactions() {
     return await TransactionDetails.find({
       relations: {
-        patientDetails: true,
+        patientDetails: {
+          doctor: { userInformation: true },
+          appointment: true,
+          transactions: true,
+        },
         paymentDetails: true,
       },
     });
@@ -34,6 +38,10 @@ class TransactionService {
     const transaction = await TransactionDetails.findOne({
       relations: {
         paymentDetails: true,
+        patientDetails: {
+          doctor: true,
+          appointment: true,
+        },
       },
       where: [
         { _tid: input.tid },

@@ -9,8 +9,10 @@ import {
   QueryGetUserArgs,
   QueryGetUserInformationArgs,
   QueryGetTransactionArgs,
+  QueryGetNotificationArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
+import NotificationsService from "../services/notifications.service";
 
 const queries = {
   users: async () => {
@@ -63,6 +65,16 @@ const queries = {
     const getTransaction = await TransactionService.getTransaction(args);
 
     return getTransaction;
+  },
+
+  notifications: async () => {
+    return NotificationsService.notifications();
+  },
+
+  getNotification: async (_: any, args: QueryGetNotificationArgs) => {
+    const getNotification = await NotificationsService.getNotification(args);
+
+    return getNotification;
   },
 };
 

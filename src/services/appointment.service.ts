@@ -101,6 +101,7 @@ class AppointmentService {
         bodyTemp: input?.bodyTemp || 0,
         heartRate: input?.heartRate || 0,
         weight: input?.weight || 0,
+        height: input?.height || 0,
         allergy: input?.allergy || "",
         findings: "",
         medications: "",

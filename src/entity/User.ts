@@ -7,9 +7,11 @@ import {
   PrimaryGeneratedColumn,
   JoinColumn,
   OneToOne,
+  OneToMany,
 } from "typeorm";
 import { UserInformation } from "./UserInformation";
 import * as bcrypt from "bcrypt";
+import { Notification } from "./Notification";
 
 @Entity("users")
 export class User extends BaseEntity {
@@ -31,6 +33,9 @@ export class User extends BaseEntity {
   @OneToOne(() => UserInformation, (userinformation) => userinformation.user)
   @JoinColumn()
   userInformation: UserInformation;
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 
   @Column("text", { default: new Date().toISOString() })
   createdAt!: string;

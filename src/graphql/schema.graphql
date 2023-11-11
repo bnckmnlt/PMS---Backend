@@ -11,6 +11,11 @@ enum TransactionStatus {
   PAID
 }
 
+enum NotificationType {
+  ADDED
+  COMPLETED
+}
+
 enum Specialization {
   GENERAL_PRACTITIONER
   INTERNAL_MEDICINE
@@ -37,6 +42,7 @@ type User {
   password: String!
   emailVerified: Boolean!
   userInformation: UserInformation
+  notifications: [Notification]
   createdAt: String!
   updatedAt: String!
 }
@@ -80,6 +86,7 @@ type Patient {
   bodyTemp: Int
   heartRate: Int
   weight: Int
+  height: Int
   allergy: String
   findings: String
   medications: String
@@ -99,6 +106,7 @@ input AddPatient {
   bodyTemp: Int!
   heartRate: Int!
   weight: Int!
+  height: Int!
 }
 
 input UpdatePatient {
@@ -112,11 +120,12 @@ input UpdatePatient {
   doctor: String
   bodyTemp: Int
   heartRate: Int
+  weight: Int
+  height: Int
 }
 
 input AddPatientResult {
   _id: ID!
-  weight: Int!
   allergy: String!
   findings: String!
   medications: String!
@@ -145,6 +154,7 @@ input SetAppointment {
   bodyTemp: Int
   heartRate: Int
   weight: Int
+  height: Int
   allergy: String
 }
 
@@ -183,6 +193,18 @@ input UpdateTransaction {
   total: Int!
   amountTendered: Int!
   change: Int!
+}
+
+type Notification {
+  _id: ID!
+  type: NotificationType
+  user: User!
+  title: String!
+  description: String!
+  payload: Patient
+  isRead: Boolean!
+  createdAt: String!
+  updatedAt: String!
 }
 
 interface MutationResponse {
@@ -235,6 +257,13 @@ type TransactionPayload implements MutationResponse {
   transaction: TransactionDetails
 }
 
+type NotificationPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  notification: [Notification]
+}
+
 type Query {
   users: [User]
   getUser(email: String, _id: String): AuthPayload!
@@ -260,6 +289,9 @@ type Query {
     cardId: String
     contactNumber: String
   ): TransactionPayload!
+
+  notifications: [Notification]
+  getNotification(id: String): NotificationPayload
 }
 
 type Mutation {
@@ -289,5 +321,6 @@ type Mutation {
 }
 
 type Subscription {
-  patientAdded(id: String): Patient
+  patientAdded(id: String): Notification
+  patientCompleted: Notification
 }

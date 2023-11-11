@@ -65,13 +65,16 @@ export class Patient extends BaseEntity {
   @Column("text")
   weight!: number;
 
-  @Column("text", { default: "none" })
+  @Column("text")
+  height!: number;
+
+  @Column("text", { default: "NONE" })
   allergy: string;
 
-  @Column("text", { default: "none" })
+  @Column("text", { default: "NONE" })
   findings: string;
 
-  @Column("text", { default: "none" })
+  @Column("text", { default: "NONE" })
   medications: string;
 
   @Column("text", { default: new Date().toISOString() })

@@ -40,7 +40,6 @@ export const initializeServer = async () => {
 
   const server = new ApolloServer({
     schema,
-    // context: AuthMiddleware,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       {
