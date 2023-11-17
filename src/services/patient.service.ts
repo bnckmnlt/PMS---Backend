@@ -9,11 +9,14 @@ import {
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import { User } from "../entity/User";
 import {
+  publishAddPatientInQueue,
   publishPatientCompleted,
   publishPatientRecord,
 } from "../graphql/subscriptions";
 import { Notification } from "../entity/Notification";
 import { DevelopmentDataSource } from "../data-source";
+import { PatientInQueue } from "../entity/PatientInQueue";
+import { Queue } from "../entity/Queue";
 
 class PatientService {
   async patients() {
@@ -125,7 +128,7 @@ class PatientService {
         },
         where: {
           payload: {
-            _id: newPatient._id,
+            _id: patientResponse._id,
           },
         },
       });
@@ -145,13 +148,53 @@ class PatientService {
         payload: patientResponse,
       });
 
+      const verifyQueue = await Queue.findOne({
+        relations: {
+          user: true,
+          queue: true,
+        },
+        where: {
+          user: {
+            _id: consultant._id,
+          },
+        },
+      });
+
+      if (!verifyQueue) {
+        return throwCustomError("Queue not found", ErrorTypes.NOT_FOUND);
+      }
+
+      const verifyPatientInQueue = await PatientInQueue.findOne({
+        relations: {
+          queue: true,
+          patient: true,
+        },
+        where: {
+          patient: {
+            _id: patientResponse._id,
+          },
+        },
+      });
+
+      if (verifyPatientInQueue) {
+        return throwCustomError("Patient in queue exists", ErrorTypes.CONFLICT);
+      }
+
+      const addPatientInQueue = PatientInQueue.create({
+        queue: verifyQueue,
+        patient: newPatient,
+      });
+
       const saveNotification = await addNotification.save();
+      const addPatientInQueueResponse = await addPatientInQueue.save();
 
       await queryRunner.manager.save(newPatient);
       await queryRunner.manager.save(addNotification);
+      await queryRunner.manager.save(addPatientInQueue);
       await queryRunner.commitTransaction();
 
       publishPatientRecord(saveNotification);
+      publishAddPatientInQueue(addPatientInQueueResponse);
 
       return {
         code: 200,

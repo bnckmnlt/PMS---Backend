@@ -227,7 +227,21 @@ class TransactionService {
       );
     }
 
+    const getPayment = await PaymentDetails.findOne({
+      where: {
+        _id: getTransaction._tid,
+      },
+    });
+
+    if (!getPayment) {
+      return throwCustomError(
+        "No payment records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
+    }
+
     const removeTransaction = await TransactionDetails.remove(getTransaction);
+    await PaymentDetails.remove(getPayment);
 
     if (!removeTransaction) {
       return throwCustomError(

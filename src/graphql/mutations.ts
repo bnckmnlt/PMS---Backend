@@ -18,8 +18,10 @@ import {
   MutationRemoveUserArgs,
   MutationDeleteAccountArgs,
   MutationAddPatientResultArgs,
+  MutationAddQueueArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
+import QueueService from "../services/queue.service";
 
 const mutations = {
   register: async (_: any, args: MutationRegisterArgs) => {
@@ -154,6 +156,12 @@ const mutations = {
     const removeTransaction = await TransactionService.removeTransaction(args);
 
     return removeTransaction;
+  },
+
+  addQueue: async (_: any, args: MutationAddQueueArgs, _context: any) => {
+    const addQueue = await QueueService.addQueue(args);
+
+    return addQueue;
   },
 };
 

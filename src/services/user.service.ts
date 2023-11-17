@@ -208,6 +208,9 @@ class UserService {
     }
 
     const verifyUser = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
       where: {
         _id: input?._id,
       },
@@ -216,24 +219,21 @@ class UserService {
     if (!verifyUser) {
       return throwCustomError(
         "No user records match the input criteria",
-        ErrorTypes.NOT_FOUND
+        ErrorTypes.CONFLICT
       );
     }
 
-    const createUserInformation = UserInformation.create({
+    const res = await UserInformation.save({
+      _id: verifyUser._id,
       user: verifyUser,
       firstName: input?.firstName,
       lastName: input?.lastName,
       middleName: input?.middleName,
       contactNumber: input?.contactNumber,
-      specialization: input?.specialization || "NONE",
-      schedule: input?.schedule || "NONE",
+      specialization: input?.specialization || undefined,
+      schedule: input?.schedule || undefined,
       updatedAt: new Date().toISOString(),
     });
-
-    const res = await createUserInformation.save();
-    verifyUser.updatedAt = new Date().toISOString();
-    await verifyUser.save();
 
     return {
       code: 200,

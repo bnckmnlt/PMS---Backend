@@ -207,6 +207,23 @@ type Notification {
   updatedAt: String!
 }
 
+type PatientInQueue {
+  number: Int
+  patient: Patient
+  isAccepted: Boolean!
+  isDone: Boolean!
+  updatedAt: String!
+  createdAt: String!
+}
+
+type Queue {
+  _id: ID!
+  user: User!
+  queue: [PatientInQueue]
+  updatedAt: String!
+  createdAt: String!
+}
+
 interface MutationResponse {
   code: String!
   success: Boolean!
@@ -264,6 +281,13 @@ type NotificationPayload implements MutationResponse {
   notification: [Notification]
 }
 
+type QueuePayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  queue: Queue
+}
+
 type Query {
   users: [User]
   getUser(email: String, _id: String): AuthPayload!
@@ -292,6 +316,8 @@ type Query {
 
   notifications: [Notification]
   getNotification(id: String): NotificationPayload
+
+  getQueue(id: String): QueuePayload
 }
 
 type Mutation {
@@ -318,9 +344,13 @@ type Mutation {
   addTransaction(input: AddTransaction): TransactionPayload!
   updateTransaction(input: UpdateTransaction): TransactionPayload!
   removeTransaction(_tid: String): TransactionPayload!
+
+  addQueue(id: String): QueuePayload
 }
 
 type Subscription {
   patientAdded(id: String): Notification
   patientCompleted: Notification
+  transactionCompleted: TransactionDetails
+  addPatientInQueue(id: String): PatientInQueue
 }

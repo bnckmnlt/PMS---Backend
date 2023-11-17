@@ -34,8 +34,6 @@ class NotificationService {
       },
     });
 
-    console.log(notification);
-
     if (!notification) {
       return throwCustomError(
         "No notification records match the input criteria",

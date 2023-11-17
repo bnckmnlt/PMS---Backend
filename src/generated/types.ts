@@ -101,6 +101,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   addPatient: PatientPayload;
   addPatientResult: PatientPayload;
+  addQueue?: Maybe<QueuePayload>;
   addTransaction: TransactionPayload;
   addUserInformation: UserInfoPayload;
   deleteAccount: AuthPayload;
@@ -124,6 +125,11 @@ export type MutationAddPatientArgs = {
 
 export type MutationAddPatientResultArgs = {
   input?: InputMaybe<AddPatientResult>;
+};
+
+
+export type MutationAddQueueArgs = {
+  id?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -256,6 +262,16 @@ export type Patient = {
   weight?: Maybe<Scalars['Int']['output']>;
 };
 
+export type PatientInQueue = {
+  __typename?: 'PatientInQueue';
+  createdAt: Scalars['String']['output'];
+  isAccepted: Scalars['Boolean']['output'];
+  isDone: Scalars['Boolean']['output'];
+  number?: Maybe<Scalars['Int']['output']>;
+  patient?: Maybe<Patient>;
+  updatedAt: Scalars['String']['output'];
+};
+
 export type PatientPayload = MutationResponse & {
   __typename?: 'PatientPayload';
   code: Scalars['String']['output'];
@@ -283,6 +299,7 @@ export type Query = {
   getAppointment: AppointmentPayload;
   getNotification?: Maybe<NotificationPayload>;
   getPatient: PatientPayload;
+  getQueue?: Maybe<QueuePayload>;
   getTransaction: TransactionPayload;
   getUser: AuthPayload;
   getUserInformation: UserInfoPayload;
@@ -312,6 +329,11 @@ export type QueryGetPatientArgs = {
 };
 
 
+export type QueryGetQueueArgs = {
+  id?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type QueryGetTransactionArgs = {
   cardId?: InputMaybe<Scalars['String']['input']>;
   contactNumber?: InputMaybe<Scalars['String']['input']>;
@@ -332,6 +354,23 @@ export type QueryGetUserInformationArgs = {
 export type QueryResponse = {
   code: Scalars['String']['output'];
   message: Scalars['String']['output'];
+  success: Scalars['Boolean']['output'];
+};
+
+export type Queue = {
+  __typename?: 'Queue';
+  _id: Scalars['ID']['output'];
+  createdAt: Scalars['String']['output'];
+  queue?: Maybe<Array<Maybe<PatientInQueue>>>;
+  updatedAt: Scalars['String']['output'];
+  user: User;
+};
+
+export type QueuePayload = MutationResponse & {
+  __typename?: 'QueuePayload';
+  code: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  queue?: Maybe<Queue>;
   success: Scalars['Boolean']['output'];
 };
 
@@ -360,8 +399,15 @@ export enum Specialization {
 
 export type Subscription = {
   __typename?: 'Subscription';
+  addPatientInQueue?: Maybe<PatientInQueue>;
   patientAdded?: Maybe<Notification>;
   patientCompleted?: Maybe<Notification>;
+  transactionCompleted?: Maybe<TransactionDetails>;
+};
+
+
+export type SubscriptionAddPatientInQueueArgs = {
+  id?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -529,7 +575,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
-  MutationResponse: ( AppointmentPayload ) | ( AuthPayload ) | ( NotificationPayload ) | ( PatientPayload ) | ( TransactionPayload ) | ( UserInfoPayload );
+  MutationResponse: ( AppointmentPayload ) | ( AuthPayload ) | ( NotificationPayload ) | ( PatientPayload ) | ( QueuePayload ) | ( TransactionPayload ) | ( UserInfoPayload );
   QueryResponse: never;
 };
 
@@ -553,10 +599,13 @@ export type ResolversTypes = {
   NotificationPayload: ResolverTypeWrapper<NotificationPayload>;
   NotificationType: NotificationType;
   Patient: ResolverTypeWrapper<Patient>;
+  PatientInQueue: ResolverTypeWrapper<PatientInQueue>;
   PatientPayload: ResolverTypeWrapper<PatientPayload>;
   PaymentDetails: ResolverTypeWrapper<PaymentDetails>;
   Query: ResolverTypeWrapper<{}>;
   QueryResponse: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['QueryResponse']>;
+  Queue: ResolverTypeWrapper<Queue>;
+  QueuePayload: ResolverTypeWrapper<QueuePayload>;
   SetAppointment: SetAppointment;
   Specialization: Specialization;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -589,10 +638,13 @@ export type ResolversParentTypes = {
   Notification: Notification;
   NotificationPayload: NotificationPayload;
   Patient: Patient;
+  PatientInQueue: PatientInQueue;
   PatientPayload: PatientPayload;
   PaymentDetails: PaymentDetails;
   Query: {};
   QueryResponse: ResolversInterfaceTypes<ResolversParentTypes>['QueryResponse'];
+  Queue: Queue;
+  QueuePayload: QueuePayload;
   SetAppointment: SetAppointment;
   String: Scalars['String']['output'];
   Subscription: {};
@@ -637,6 +689,7 @@ export type AuthPayloadResolvers<ContextType = any, ParentType extends Resolvers
 export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   addPatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddPatientArgs>>;
   addPatientResult?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddPatientResultArgs>>;
+  addQueue?: Resolver<Maybe<ResolversTypes['QueuePayload']>, ParentType, ContextType, Partial<MutationAddQueueArgs>>;
   addTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<MutationAddTransactionArgs>>;
   addUserInformation?: Resolver<ResolversTypes['UserInfoPayload'], ParentType, ContextType, Partial<MutationAddUserInformationArgs>>;
   deleteAccount?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationDeleteAccountArgs, 'id' | 'password'>>;
@@ -653,7 +706,7 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
 };
 
 export type MutationResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['MutationResponse'] = ResolversParentTypes['MutationResponse']> = {
-  __resolveType: TypeResolveFn<'AppointmentPayload' | 'AuthPayload' | 'NotificationPayload' | 'PatientPayload' | 'TransactionPayload' | 'UserInfoPayload', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'AppointmentPayload' | 'AuthPayload' | 'NotificationPayload' | 'PatientPayload' | 'QueuePayload' | 'TransactionPayload' | 'UserInfoPayload', ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -705,6 +758,16 @@ export type PatientResolvers<ContextType = any, ParentType extends ResolversPare
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type PatientInQueueResolvers<ContextType = any, ParentType extends ResolversParentTypes['PatientInQueue'] = ResolversParentTypes['PatientInQueue']> = {
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  isAccepted?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isDone?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  number?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  patient?: Resolver<Maybe<ResolversTypes['Patient']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type PatientPayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['PatientPayload'] = ResolversParentTypes['PatientPayload']> = {
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -731,6 +794,7 @@ export type QueryResolvers<ContextType = any, ParentType extends ResolversParent
   getAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, Partial<QueryGetAppointmentArgs>>;
   getNotification?: Resolver<Maybe<ResolversTypes['NotificationPayload']>, ParentType, ContextType, Partial<QueryGetNotificationArgs>>;
   getPatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<QueryGetPatientArgs>>;
+  getQueue?: Resolver<Maybe<ResolversTypes['QueuePayload']>, ParentType, ContextType, Partial<QueryGetQueueArgs>>;
   getTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<QueryGetTransactionArgs>>;
   getUser?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, Partial<QueryGetUserArgs>>;
   getUserInformation?: Resolver<ResolversTypes['UserInfoPayload'], ParentType, ContextType, RequireFields<QueryGetUserInformationArgs, '_id'>>;
@@ -747,9 +811,28 @@ export type QueryResponseResolvers<ContextType = any, ParentType extends Resolve
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
 };
 
+export type QueueResolvers<ContextType = any, ParentType extends ResolversParentTypes['Queue'] = ResolversParentTypes['Queue']> = {
+  _id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  queue?: Resolver<Maybe<Array<Maybe<ResolversTypes['PatientInQueue']>>>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type QueuePayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['QueuePayload'] = ResolversParentTypes['QueuePayload']> = {
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  queue?: Resolver<Maybe<ResolversTypes['Queue']>, ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type SubscriptionResolvers<ContextType = any, ParentType extends ResolversParentTypes['Subscription'] = ResolversParentTypes['Subscription']> = {
+  addPatientInQueue?: SubscriptionResolver<Maybe<ResolversTypes['PatientInQueue']>, "addPatientInQueue", ParentType, ContextType, Partial<SubscriptionAddPatientInQueueArgs>>;
   patientAdded?: SubscriptionResolver<Maybe<ResolversTypes['Notification']>, "patientAdded", ParentType, ContextType, Partial<SubscriptionPatientAddedArgs>>;
   patientCompleted?: SubscriptionResolver<Maybe<ResolversTypes['Notification']>, "patientCompleted", ParentType, ContextType>;
+  transactionCompleted?: SubscriptionResolver<Maybe<ResolversTypes['TransactionDetails']>, "transactionCompleted", ParentType, ContextType>;
 };
 
 export type TransactionDetailsResolvers<ContextType = any, ParentType extends ResolversParentTypes['TransactionDetails'] = ResolversParentTypes['TransactionDetails']> = {
@@ -814,10 +897,13 @@ export type Resolvers<ContextType = any> = {
   Notification?: NotificationResolvers<ContextType>;
   NotificationPayload?: NotificationPayloadResolvers<ContextType>;
   Patient?: PatientResolvers<ContextType>;
+  PatientInQueue?: PatientInQueueResolvers<ContextType>;
   PatientPayload?: PatientPayloadResolvers<ContextType>;
   PaymentDetails?: PaymentDetailsResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   QueryResponse?: QueryResponseResolvers<ContextType>;
+  Queue?: QueueResolvers<ContextType>;
+  QueuePayload?: QueuePayloadResolvers<ContextType>;
   Subscription?: SubscriptionResolvers<ContextType>;
   TransactionDetails?: TransactionDetailsResolvers<ContextType>;
   TransactionPayload?: TransactionPayloadResolvers<ContextType>;
