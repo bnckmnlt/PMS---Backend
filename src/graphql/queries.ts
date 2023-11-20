@@ -10,9 +10,11 @@ import {
   QueryGetUserInformationArgs,
   QueryGetTransactionArgs,
   QueryGetNotificationArgs,
+  QueryGetQueueArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import NotificationsService from "../services/notifications.service";
+import QueueService from "../services/queue.service";
 
 const queries = {
   users: async () => {
@@ -75,6 +77,12 @@ const queries = {
     const getNotification = await NotificationsService.getNotification(args);
 
     return getNotification;
+  },
+
+  getQueue: async (_: any, args: QueryGetQueueArgs) => {
+    const getQueue = await QueueService.getQueue(args);
+
+    return getQueue;
   },
 };
 

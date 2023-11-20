@@ -5,7 +5,7 @@ import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 
 class QueueService {
   async getQueue({ id }: QueryGetQueueArgs) {
-    const queue = await Queue.find({
+    const queue = await Queue.findOne({
       relations: {
         user: {
           userInformation: true,

@@ -17,6 +17,7 @@ import { Notification } from "../entity/Notification";
 import { DevelopmentDataSource } from "../data-source";
 import { PatientInQueue } from "../entity/PatientInQueue";
 import { Queue } from "../entity/Queue";
+// import { TransactionDetails } from "src/entity/TransactionDetails";
 
 class PatientService {
   async patients() {
@@ -325,11 +326,36 @@ class PatientService {
         description: `A consultation has been completed by Dr. ${patient.doctor.userInformation.lastName}`,
         updatedAt: new Date().toISOString(),
       });
+
       await queryRunner.manager.update(Patient, patient._id, {
         allergy: inputs?.allergy,
         findings: inputs?.findings,
         medications: inputs?.medications,
         status: inputs.status,
+        updatedAt: new Date().toISOString(),
+      });
+
+      const patientInQueue = await PatientInQueue.findOne({
+        relations: {
+          patient: true,
+        },
+        where: {
+          patient: {
+            _id: patient._id,
+          },
+        },
+      });
+
+      if (!patientInQueue) {
+        return throwCustomError(
+          "No patient in queue match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
+      }
+
+      await queryRunner.manager.update(PatientInQueue, patientInQueue, {
+        isAccepted: true,
+        isDone: true,
         updatedAt: new Date().toISOString(),
       });
 
@@ -349,6 +375,27 @@ class PatientService {
         return throwCustomError("Something went wrong", ErrorTypes.BAD_REQUEST);
       }
 
+      const updatedQueue = await PatientInQueue.findOne({
+        relations: {
+          patient: {
+            doctor: true,
+            transactions: true,
+            appointment: true,
+          },
+        },
+        where: {
+          patient: {
+            _id: patient._id,
+          },
+        },
+      });
+
+      if (!updatedQueue) {
+        return throwCustomError("Something went wrong", ErrorTypes.BAD_REQUEST);
+      }
+
+      console.log(updatedQueue);
+      publishAddPatientInQueue(updatedQueue);
       publishPatientCompleted(updatedNotification);
 
       return {
@@ -366,46 +413,92 @@ class PatientService {
   }
 
   async removePatient({ id }: MutationRemovePatientArgs) {
-    const patient = await Patient.findOne({
-      where: {
-        _id: id,
-      },
-    });
+    const queryRunner = DevelopmentDataSource.createQueryRunner();
 
-    if (!patient) {
-      return throwCustomError(
-        "No patient records match the input criteria",
-        ErrorTypes.NOT_FOUND
-      );
-    }
-
-    const notification = await Notification.findOne({
-      relations: {
-        user: true,
-        payload: true,
-      },
-      where: {
-        payload: {
-          _id: patient._id,
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const patient = await Patient.findOne({
+        where: {
+          _id: id,
         },
-      },
-    });
+      });
 
-    if (!notification) {
-      return throwCustomError(
-        "No notification records match the input criteria",
-        ErrorTypes.NOT_FOUND
-      );
+      if (!patient) {
+        return throwCustomError(
+          "No patient records match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
+      }
+
+      const notification = await Notification.findOne({
+        relations: {
+          user: {
+            userInformation: true,
+          },
+          payload: {
+            doctor: true,
+            appointment: true,
+            transactions: true,
+          },
+        },
+        where: {
+          payload: {
+            _id: patient._id,
+          },
+        },
+      });
+
+      if (!notification) {
+        return throwCustomError(
+          "No notification records match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
+      }
+
+      const inQueue = await PatientInQueue.findOne({
+        relations: {
+          patient: {
+            doctor: true,
+            transactions: true,
+            appointment: true,
+          },
+          queue: true,
+        },
+        where: {
+          patient: {
+            _id: patient._id,
+          },
+        },
+      });
+
+      if (!inQueue) {
+        return throwCustomError(
+          "No queue records match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
+      }
+
+      publishAddPatientInQueue(inQueue);
+      publishPatientRecord(notification);
+
+      await queryRunner.manager.remove(notification);
+      await queryRunner.manager.remove(inQueue);
+      await queryRunner.manager.remove(patient);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        code: 200,
+        success: true,
+        message: "Patient deleted",
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
+    } finally {
+      await queryRunner.release();
     }
-
-    await Patient.remove(patient);
-    await Notification.remove(notification);
-
-    return {
-      code: 200,
-      success: true,
-      message: "Patient deleted",
-    };
   }
 }
 
