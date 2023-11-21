@@ -1,4 +1,3 @@
-import { UserInformation } from "../entity/UserInformation";
 import { DevelopmentDataSource } from "../data-source";
 import { Appointment } from "../entity/Appointment";
 import { Patient } from "../entity/Patient";
@@ -9,12 +8,20 @@ import {
   QueryGetAppointmentArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
+import { User } from "../entity/User";
 
 class AppointmentService {
   async appointments() {
     return Appointment.find({
       relations: {
-        patientDetails: true,
+        patientDetails: {
+          doctor: {
+            userInformation: true,
+          },
+          transactions: {
+            paymentDetails: true,
+          },
+        },
       },
     });
   }
@@ -31,7 +38,16 @@ class AppointmentService {
     };
 
     const appointment = await Appointment.findOne({
-      relations: { patientDetails: true },
+      relations: {
+        patientDetails: {
+          doctor: {
+            userInformation: true,
+          },
+          transactions: {
+            paymentDetails: true,
+          },
+        },
+      },
       where: [
         { _apid: input._apid },
         { patientDetails: { contactNumber: input.contactNumber } },
@@ -77,9 +93,9 @@ class AppointmentService {
         );
       }
 
-      const consultant = await UserInformation.findOne({
+      const consultant = await User.findOne({
         relations: {
-          patients: true,
+          userInformation: true,
         },
         where: {
           _id: input?.doctor,
@@ -102,7 +118,6 @@ class AppointmentService {
         heartRate: input?.heartRate || 0,
         weight: input?.weight || 0,
         height: input?.height || 0,
-        allergy: input?.allergy || "",
         findings: "",
         medications: "",
       });

@@ -33,6 +33,9 @@ const subscriptions = {
       }
     ),
   },
+  addPatientInPersonnel: {
+    subscribe: () => pubsub.asyncIterator(["ADD_PATIENT_IN_PERSONNEL"]),
+  },
 };
 
 export function publishPatientRecord(data: object) {
@@ -56,6 +59,12 @@ export function publishTransactionCompleted(data: object) {
 export function publishAddPatientInQueue(data: object) {
   pubsub.publish("ADD_PATIENT_INQUEUE", {
     addPatientInQueue: data,
+  });
+}
+
+export function publishAddPatientInPersonnel(data: object) {
+  pubsub.publish("ADD_PATIENT_IN_PERSONNEL", {
+    addPatientInPersonnel: data,
   });
 }
 

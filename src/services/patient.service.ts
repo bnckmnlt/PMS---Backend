@@ -9,6 +9,7 @@ import {
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import { User } from "../entity/User";
 import {
+  publishAddPatientInPersonnel,
   publishAddPatientInQueue,
   publishPatientCompleted,
   publishPatientRecord,
@@ -26,8 +27,12 @@ class PatientService {
         doctor: {
           userInformation: true,
         },
-        transactions: true,
-        appointment: true,
+        transactions: {
+          paymentDetails: true,
+        },
+        appointment: {
+          patientDetails: true,
+        },
       },
     });
   }
@@ -42,8 +47,10 @@ class PatientService {
     const patient = await Patient.findOne({
       relations: {
         doctor: true,
-        transactions: true,
-        appointment: true,
+        transactions: {
+          paymentDetails: true,
+        },
+        appointment: { patientDetails: true },
       },
       where: [
         { _id: input._id },
@@ -195,6 +202,7 @@ class PatientService {
       await queryRunner.commitTransaction();
 
       publishPatientRecord(saveNotification);
+      publishAddPatientInPersonnel(patientResponse);
       publishAddPatientInQueue(addPatientInQueueResponse);
 
       return {
@@ -379,7 +387,9 @@ class PatientService {
         relations: {
           patient: {
             doctor: true,
-            transactions: true,
+            transactions: {
+              paymentDetails: true,
+            },
             appointment: true,
           },
         },
@@ -419,6 +429,16 @@ class PatientService {
     await queryRunner.startTransaction();
     try {
       const patient = await Patient.findOne({
+        relations: {
+          doctor: {
+            userInformation: true,
+          },
+          appointment: true,
+          transactions: {
+            paymentDetails: true,
+            patientDetails: true,
+          },
+        },
         where: {
           _id: id,
         },
@@ -439,7 +459,9 @@ class PatientService {
           payload: {
             doctor: true,
             appointment: true,
-            transactions: true,
+            transactions: {
+              paymentDetails: true,
+            },
           },
         },
         where: {
@@ -460,7 +482,9 @@ class PatientService {
         relations: {
           patient: {
             doctor: true,
-            transactions: true,
+            transactions: {
+              paymentDetails: true,
+            },
             appointment: true,
           },
           queue: true,
@@ -479,8 +503,10 @@ class PatientService {
         );
       }
 
+      publishAddPatientInPersonnel(patient);
       publishAddPatientInQueue(inQueue);
       publishPatientRecord(notification);
+      publishPatientCompleted(notification);
 
       await queryRunner.manager.remove(notification);
       await queryRunner.manager.remove(inQueue);

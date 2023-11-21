@@ -155,7 +155,6 @@ input SetAppointment {
   heartRate: Int
   weight: Int
   height: Int
-  allergy: String
 }
 
 type TransactionDetails {
@@ -353,4 +352,5 @@ type Subscription {
   patientCompleted: Notification
   transactionCompleted: TransactionDetails
   addPatientInQueue(id: String): PatientInQueue
+  addPatientInPersonnel: Patient
 }

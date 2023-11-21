@@ -377,7 +377,6 @@ export type QueuePayload = MutationResponse & {
 export type SetAppointment = {
   additionalInfo: Scalars['String']['input'];
   age: Scalars['Int']['input'];
-  allergy?: InputMaybe<Scalars['String']['input']>;
   bodyTemp?: InputMaybe<Scalars['Int']['input']>;
   contactNumber: Scalars['String']['input'];
   doctor: Scalars['String']['input'];
@@ -399,6 +398,7 @@ export enum Specialization {
 
 export type Subscription = {
   __typename?: 'Subscription';
+  addPatientInPersonnel?: Maybe<Patient>;
   addPatientInQueue?: Maybe<PatientInQueue>;
   patientAdded?: Maybe<Notification>;
   patientCompleted?: Maybe<Notification>;
@@ -829,6 +829,7 @@ export type QueuePayloadResolvers<ContextType = any, ParentType extends Resolver
 };
 
 export type SubscriptionResolvers<ContextType = any, ParentType extends ResolversParentTypes['Subscription'] = ResolversParentTypes['Subscription']> = {
+  addPatientInPersonnel?: SubscriptionResolver<Maybe<ResolversTypes['Patient']>, "addPatientInPersonnel", ParentType, ContextType>;
   addPatientInQueue?: SubscriptionResolver<Maybe<ResolversTypes['PatientInQueue']>, "addPatientInQueue", ParentType, ContextType, Partial<SubscriptionAddPatientInQueueArgs>>;
   patientAdded?: SubscriptionResolver<Maybe<ResolversTypes['Notification']>, "patientAdded", ParentType, ContextType, Partial<SubscriptionPatientAddedArgs>>;
   patientCompleted?: SubscriptionResolver<Maybe<ResolversTypes['Notification']>, "patientCompleted", ParentType, ContextType>;

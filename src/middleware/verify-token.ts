@@ -2,7 +2,7 @@ import { verify } from "jsonwebtoken";
 import { User } from "../entity/User";
 
 export const AuthMiddleware = async ({ req, next }: any) => {
-  const authHeaders = req.get("Authorization");
+  const authHeaders = req.get("Authorization" || "authorization");
 
   if (!authHeaders) {
     req.isAuth = false;

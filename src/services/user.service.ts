@@ -170,24 +170,26 @@ class UserService {
 
     const refreshToken = authUtilities.signToken(
       {
-        uid: verifyUser._id,
-        userRole: verifyUser.userRole,
+        "_id": verifyUser._id,
+        "userRole": verifyUser.userRole,
       },
       {
-        expiresIn: "1d",
+        expiresIn: "7d",
       }
     );
 
     const accessToken = authUtilities.signToken(
       {
-        _id: verifyUser._id,
-        userRole: verifyUser.userRole,
-        firstname: verifyUser.userInformation.firstName,
-        lastname: verifyUser.userInformation.lastName,
-        middleName: verifyUser.userInformation.middleName,
-        specialization: verifyUser.userInformation.specialization,
+        "_id": verifyUser._id,
+        "userRole": verifyUser.userRole,
+        "UserInformation": {
+          "firstname": verifyUser.userInformation.firstName,
+          "lastname": verifyUser.userInformation.lastName,
+          "middleName": verifyUser.userInformation.middleName,
+          "specialization": verifyUser.userInformation.specialization,
+        },
       },
-      { expiresIn: 15 * 60 }
+      { expiresIn: "15m" }
     );
 
     return {

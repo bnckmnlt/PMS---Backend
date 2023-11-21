@@ -9,6 +9,7 @@ import {
   QueryGetTransactionArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
+import { publishTransactionCompleted } from "../graphql/subscriptions";
 
 class TransactionService {
   async transactions() {
@@ -205,6 +206,28 @@ class TransactionService {
       }
     );
 
+    const updatedTransaction = await TransactionDetails.findOne({
+      relations: {
+        paymentDetails: true,
+        patientDetails: {
+          doctor: true,
+          appointment: true,
+        },
+      },
+      where: {
+        _tid: transaction._tid,
+      },
+    });
+
+    if (!updatedTransaction) {
+      return throwCustomError(
+        "No transaction records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
+    }
+
+    publishTransactionCompleted(updatedTransaction);
+
     return {
       code: 200,
       success: true,
@@ -214,47 +237,61 @@ class TransactionService {
   }
 
   async removeTransaction(args: MutationRemoveTransactionArgs) {
-    const getTransaction = await TransactionDetails.findOne({
-      where: {
-        _tid: args._tid || "",
-      },
-    });
+    const queryRunner = DevelopmentDataSource.createQueryRunner();
 
-    if (!getTransaction) {
-      return throwCustomError(
-        "No transaction records match the input criteria",
-        ErrorTypes.NOT_FOUND
-      );
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const getTransaction = await TransactionDetails.findOne({
+        relations: {
+          paymentDetails: true,
+          patientDetails: {
+            doctor: true,
+            appointment: true,
+          },
+        },
+        where: {
+          _tid: args._tid || "",
+        },
+      });
+
+      if (!getTransaction) {
+        return throwCustomError(
+          "No transaction records match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
+      }
+
+      const getPayment = await PaymentDetails.findOne({
+        where: {
+          _id: getTransaction._tid,
+        },
+      });
+
+      if (!getPayment) {
+        return throwCustomError(
+          "No payment records match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
+      }
+
+      publishTransactionCompleted(getTransaction);
+
+      await queryRunner.manager.remove(getTransaction);
+      await queryRunner.manager.remove(getPayment);
+      await queryRunner.commitTransaction();
+
+      return {
+        code: 200,
+        success: true,
+        message: "Transaction removed",
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
+    } finally {
+      await queryRunner.release();
     }
-
-    const getPayment = await PaymentDetails.findOne({
-      where: {
-        _id: getTransaction._tid,
-      },
-    });
-
-    if (!getPayment) {
-      return throwCustomError(
-        "No payment records match the input criteria",
-        ErrorTypes.NOT_FOUND
-      );
-    }
-
-    const removeTransaction = await TransactionDetails.remove(getTransaction);
-    await PaymentDetails.remove(getPayment);
-
-    if (!removeTransaction) {
-      return throwCustomError(
-        "Something went wrong with the process",
-        ErrorTypes.BAD_REQUEST
-      );
-    }
-
-    return {
-      code: 200,
-      success: true,
-      message: "Transaction removed",
-    };
   }
 }
 
