@@ -114,6 +114,8 @@ class AppointmentService {
         age: input?.age,
         contactNumber: input?.contactNumber,
         emailAddress: input?.emailAddress,
+        address: input?.address,
+        gender: input?.gender,
         bodyTemp: input?.bodyTemp || 0,
         heartRate: input?.heartRate || 0,
         weight: input?.weight || 0,

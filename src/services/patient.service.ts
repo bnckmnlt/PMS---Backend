@@ -46,7 +46,9 @@ class PatientService {
 
     const patient = await Patient.findOne({
       relations: {
-        doctor: true,
+        doctor: {
+          userInformation: true
+        },
         transactions: {
           paymentDetails: true,
         },
@@ -121,6 +123,8 @@ class PatientService {
         age: input?.age,
         contactNumber: input?.contactNumber,
         emailAddress: input?.emailAddress,
+        address: input?.address,
+        gender: input?.gender,
         bodyTemp: input?.bodyTemp,
         heartRate: input?.heartRate,
         weight: input?.weight,
@@ -228,6 +232,8 @@ class PatientService {
       age: input?.age,
       contactNumber: input?.contactNumber,
       emailAddress: input?.emailAddress,
+      address: input?.address,
+      gender: input?.gender,
       doctor: input?.doctor,
       bodyTemp: input?.bodyTemp,
       heartRate: input?.heartRate,
@@ -252,20 +258,36 @@ class PatientService {
       );
     }
 
+    const consultant = await User.findOne({
+      relations: { userInformation: true },
+      where: {
+        _id: inputs?.doctor,
+      },
+    });
+
+    if (!consultant) {
+      return throwCustomError(
+        "No consultant records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
+    }
+
     await Patient.update(
       { _id: patient._id },
       {
-        firstName: inputs?.firstName,
-        lastName: inputs?.lastName,
-        middleName: inputs?.middleName,
-        age: inputs?.age,
-        contactNumber: inputs?.contactNumber,
-        emailAddress: inputs?.emailAddress,
-        doctor: inputs?.doctor,
-        bodyTemp: inputs?.bodyTemp,
-        heartRate: inputs?.heartRate,
-        weight: inputs?.weight,
-        height: inputs?.height,
+        firstName: inputs?.firstName || undefined,
+        lastName: inputs?.lastName || undefined,
+        middleName: inputs?.middleName || undefined,
+        age: inputs?.age || undefined,
+        contactNumber: inputs?.contactNumber || undefined,
+        emailAddress: inputs?.emailAddress || undefined,
+        doctor: consultant,
+        address: inputs?.address || undefined,
+        gender: inputs?.gender || undefined,
+        bodyTemp: inputs?.bodyTemp || undefined,
+        heartRate: inputs?.heartRate || undefined,
+        weight: inputs?.weight || undefined,
+        height: inputs?.height || undefined,
         updatedAt: new Date().toISOString(),
       }
     );
@@ -301,6 +323,7 @@ class PatientService {
           _id: input?._id,
         },
       });
+      console.log(patient);
 
       if (!patient) {
         return throwCustomError(
@@ -308,6 +331,14 @@ class PatientService {
           ErrorTypes.NOT_FOUND
         );
       }
+
+      await queryRunner.manager.update(Patient, patient._id, {
+        allergy: inputs?.allergy,
+        findings: inputs?.findings,
+        medications: inputs?.medications,
+        status: inputs.status,
+        updatedAt: new Date().toISOString(),
+      });
 
       const notification = await Notification.findOne({
         relations: {
@@ -335,78 +366,78 @@ class PatientService {
         updatedAt: new Date().toISOString(),
       });
 
-      await queryRunner.manager.update(Patient, patient._id, {
-        allergy: inputs?.allergy,
-        findings: inputs?.findings,
-        medications: inputs?.medications,
-        status: inputs.status,
-        updatedAt: new Date().toISOString(),
-      });
-
-      const patientInQueue = await PatientInQueue.findOne({
-        relations: {
-          patient: true,
-        },
-        where: {
-          patient: {
-            _id: patient._id,
+      if (!patient.appointment) {
+        const patientInQueue = await PatientInQueue.findOne({
+          relations: {
+            patient: true,
           },
-        },
-      });
+          where: {
+            patient: {
+              _id: patient._id,
+            },
+          },
+        });
 
-      if (!patientInQueue) {
-        return throwCustomError(
-          "No patient in queue match the input criteria",
-          ErrorTypes.NOT_FOUND
-        );
+        if (!patientInQueue) {
+          return throwCustomError(
+            "No patient in queue match the input criteria",
+            ErrorTypes.NOT_FOUND
+          );
+        }
+
+        await queryRunner.manager.update(PatientInQueue, patientInQueue, {
+          isAccepted: true,
+          isDone: true,
+          updatedAt: new Date().toISOString(),
+        });
+
+        const updatedNotification = await Notification.findOne({
+          relations: {
+            user: { userInformation: true },
+            payload: { doctor: true, appointment: true, transactions: true },
+          },
+          where: {
+            _id: notification._id,
+          },
+        });
+
+        if (!updatedNotification) {
+          return throwCustomError(
+            "Something went wrong",
+            ErrorTypes.BAD_REQUEST
+          );
+        }
+
+        const updatedQueue = await PatientInQueue.findOne({
+          relations: {
+            patient: {
+              doctor: true,
+              transactions: {
+                paymentDetails: true,
+              },
+              appointment: true,
+            },
+          },
+          where: {
+            patient: {
+              _id: patient._id,
+            },
+          },
+        });
+
+        if (!updatedQueue) {
+          return throwCustomError(
+            "Something went wrong",
+            ErrorTypes.BAD_REQUEST
+          );
+        }
+
+        console.log(updatedQueue);
+        publishAddPatientInQueue(updatedQueue);
+        publishPatientCompleted(updatedNotification);
       }
-
-      await queryRunner.manager.update(PatientInQueue, patientInQueue, {
-        isAccepted: true,
-        isDone: true,
-        updatedAt: new Date().toISOString(),
-      });
 
       await queryRunner.commitTransaction();
-
-      const updatedNotification = await Notification.findOne({
-        relations: {
-          user: { userInformation: true },
-          payload: { doctor: true, appointment: true, transactions: true },
-        },
-        where: {
-          _id: notification._id,
-        },
-      });
-
-      if (!updatedNotification) {
-        return throwCustomError("Something went wrong", ErrorTypes.BAD_REQUEST);
-      }
-
-      const updatedQueue = await PatientInQueue.findOne({
-        relations: {
-          patient: {
-            doctor: true,
-            transactions: {
-              paymentDetails: true,
-            },
-            appointment: true,
-          },
-        },
-        where: {
-          patient: {
-            _id: patient._id,
-          },
-        },
-      });
-
-      if (!updatedQueue) {
-        return throwCustomError("Something went wrong", ErrorTypes.BAD_REQUEST);
-      }
-
-      console.log(updatedQueue);
-      publishAddPatientInQueue(updatedQueue);
-      publishPatientCompleted(updatedNotification);
 
       return {
         code: 200,

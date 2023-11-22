@@ -18,6 +18,7 @@ export type Scalars = {
 };
 
 export type AddPatient = {
+  address: Scalars['String']['input'];
   age: Scalars['Int']['input'];
   bodyTemp: Scalars['Int']['input'];
   cardId: Scalars['String']['input'];
@@ -25,6 +26,7 @@ export type AddPatient = {
   doctor: Scalars['String']['input'];
   emailAddress: Scalars['String']['input'];
   firstName: Scalars['String']['input'];
+  gender: Gender;
   heartRate: Scalars['Int']['input'];
   height: Scalars['Int']['input'];
   lastName: Scalars['String']['input'];
@@ -95,6 +97,11 @@ export enum DiscountCategory {
   PhilhealthDiscount = 'PHILHEALTH_DISCOUNT',
   PwdDiscount = 'PWD_DISCOUNT',
   SeniorCitizenDiscount = 'SENIOR_CITIZEN_DISCOUNT'
+}
+
+export enum Gender {
+  Female = 'FEMALE',
+  Male = 'MALE'
 }
 
 export type Mutation = {
@@ -240,6 +247,7 @@ export enum NotificationType {
 export type Patient = {
   __typename?: 'Patient';
   _id: Scalars['ID']['output'];
+  address: Scalars['String']['output'];
   age: Scalars['Int']['output'];
   allergy?: Maybe<Scalars['String']['output']>;
   appointment?: Maybe<Appointment>;
@@ -251,6 +259,7 @@ export type Patient = {
   emailAddress: Scalars['String']['output'];
   findings?: Maybe<Scalars['String']['output']>;
   firstName: Scalars['String']['output'];
+  gender: Gender;
   heartRate?: Maybe<Scalars['Int']['output']>;
   height?: Maybe<Scalars['Int']['output']>;
   lastName: Scalars['String']['output'];
@@ -376,12 +385,14 @@ export type QueuePayload = MutationResponse & {
 
 export type SetAppointment = {
   additionalInfo: Scalars['String']['input'];
+  address: Scalars['String']['input'];
   age: Scalars['Int']['input'];
   bodyTemp?: InputMaybe<Scalars['Int']['input']>;
   contactNumber: Scalars['String']['input'];
   doctor: Scalars['String']['input'];
   emailAddress: Scalars['String']['input'];
   firstName: Scalars['String']['input'];
+  gender: Gender;
   heartRate?: InputMaybe<Scalars['Int']['input']>;
   height?: InputMaybe<Scalars['Int']['input']>;
   lastName: Scalars['String']['input'];
@@ -440,12 +451,14 @@ export enum TransactionStatus {
 
 export type UpdatePatient = {
   _id: Scalars['ID']['input'];
+  address?: InputMaybe<Scalars['String']['input']>;
   age?: InputMaybe<Scalars['Int']['input']>;
   bodyTemp?: InputMaybe<Scalars['Int']['input']>;
   contactNumber?: InputMaybe<Scalars['String']['input']>;
   doctor?: InputMaybe<Scalars['String']['input']>;
   emailAddress?: InputMaybe<Scalars['String']['input']>;
   firstName?: InputMaybe<Scalars['String']['input']>;
+  gender?: InputMaybe<Gender>;
   heartRate?: InputMaybe<Scalars['Int']['input']>;
   height?: InputMaybe<Scalars['Int']['input']>;
   lastName?: InputMaybe<Scalars['String']['input']>;
@@ -591,6 +604,7 @@ export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CheckupStatus: CheckupStatus;
   DiscountCategory: DiscountCategory;
+  Gender: Gender;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
@@ -735,6 +749,7 @@ export type NotificationPayloadResolvers<ContextType = any, ParentType extends R
 
 export type PatientResolvers<ContextType = any, ParentType extends ResolversParentTypes['Patient'] = ResolversParentTypes['Patient']> = {
   _id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  address?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   age?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   allergy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   appointment?: Resolver<Maybe<ResolversTypes['Appointment']>, ParentType, ContextType>;
@@ -746,6 +761,7 @@ export type PatientResolvers<ContextType = any, ParentType extends ResolversPare
   emailAddress?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   findings?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   firstName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  gender?: Resolver<ResolversTypes['Gender'], ParentType, ContextType>;
   heartRate?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   height?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   lastName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

@@ -35,6 +35,11 @@ enum DiscountCategory {
   NONE
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 type User {
   _id: ID!
   userRole: UserRoles!
@@ -83,6 +88,8 @@ type Patient {
   age: Int!
   contactNumber: String!
   emailAddress: String!
+  address: String!
+  gender: Gender!
   bodyTemp: Int
   heartRate: Int
   weight: Int
@@ -102,6 +109,8 @@ input AddPatient {
   age: Int!
   contactNumber: String!
   emailAddress: String!
+  address: String!
+  gender: Gender!
   doctor: String!
   bodyTemp: Int!
   heartRate: Int!
@@ -117,6 +126,8 @@ input UpdatePatient {
   age: Int
   contactNumber: String
   emailAddress: String
+  address: String
+  gender: Gender
   doctor: String
   bodyTemp: Int
   heartRate: Int
@@ -150,6 +161,8 @@ input SetAppointment {
   age: Int!
   contactNumber: String!
   emailAddress: String!
+  address: String!
+  gender: Gender!
   doctor: String!
   bodyTemp: Int
   heartRate: Int

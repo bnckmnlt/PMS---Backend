@@ -57,6 +57,12 @@ export class Patient extends BaseEntity {
   emailAddress!: string;
 
   @Column("text")
+  address!: string;
+
+  @Column("text")
+  gender!: string;
+
+  @Column("text")
   bodyTemp!: number;
 
   @Column("text")
