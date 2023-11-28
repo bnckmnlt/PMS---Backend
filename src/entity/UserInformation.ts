@@ -34,7 +34,7 @@ export class UserInformation extends BaseEntity {
   @Column("text")
   specialization: string;
 
-  @Column("text")
+  @Column("text", { default: "NONE" })
   schedule: string;
 
   @OneToMany(() => Patient, (patient) => patient.doctor)

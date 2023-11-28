@@ -57,6 +57,26 @@ export type AddUserInformation = {
   specialization?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type Admin = {
+  __typename?: 'Admin';
+  _id: Scalars['ID']['output'];
+  cardId: Scalars['String']['output'];
+  createdAt: Scalars['String']['output'];
+  password: Scalars['String']['output'];
+  role: Scalars['String']['output'];
+  updatedAt: Scalars['String']['output'];
+  username: Scalars['String']['output'];
+};
+
+export type AdminAuthPayload = MutationResponse & {
+  __typename?: 'AdminAuthPayload';
+  code: Scalars['String']['output'];
+  credentials?: Maybe<Admin>;
+  message: Scalars['String']['output'];
+  refreshToken?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
 export type Appointment = {
   __typename?: 'Appointment';
   _apid: Scalars['ID']['output'];
@@ -78,10 +98,10 @@ export type AppointmentPayload = MutationResponse & {
 
 export type AuthPayload = MutationResponse & {
   __typename?: 'AuthPayload';
-  accessToken: Scalars['String']['output'];
+  accessToken?: Maybe<Scalars['String']['output']>;
   code: Scalars['String']['output'];
   message: Scalars['String']['output'];
-  refreshToken: Scalars['String']['output'];
+  refreshToken?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
   user?: Maybe<User>;
 };
@@ -106,12 +126,14 @@ export enum Gender {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  addAdmin?: Maybe<AdminAuthPayload>;
   addPatient: PatientPayload;
   addPatientResult: PatientPayload;
   addQueue?: Maybe<QueuePayload>;
   addTransaction: TransactionPayload;
   addUserInformation: UserInfoPayload;
   deleteAccount: AuthPayload;
+  loginAdmin?: Maybe<AdminAuthPayload>;
   loginUser: AuthPayload;
   register: AuthPayload;
   removeAppointment: AppointmentPayload;
@@ -122,6 +144,14 @@ export type Mutation = {
   updateAppointment: AppointmentPayload;
   updatePatient: PatientPayload;
   updateTransaction: TransactionPayload;
+  verifyEmail: UserPayload;
+};
+
+
+export type MutationAddAdminArgs = {
+  cardId?: InputMaybe<Scalars['String']['input']>;
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
 };
 
 
@@ -153,6 +183,13 @@ export type MutationAddUserInformationArgs = {
 export type MutationDeleteAccountArgs = {
   id: Scalars['String']['input'];
   password: Scalars['String']['input'];
+};
+
+
+export type MutationLoginAdminArgs = {
+  cardId?: InputMaybe<Scalars['String']['input']>;
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
 };
 
 
@@ -210,6 +247,11 @@ export type MutationUpdatePatientArgs = {
 
 export type MutationUpdateTransactionArgs = {
   input?: InputMaybe<UpdateTransaction>;
+};
+
+
+export type MutationVerifyEmailArgs = {
+  id: Scalars['String']['input'];
 };
 
 export type MutationResponse = {
@@ -512,6 +554,14 @@ export type UserInformation = {
   user?: Maybe<User>;
 };
 
+export type UserPayload = MutationResponse & {
+  __typename?: 'UserPayload';
+  code: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  success: Scalars['Boolean']['output'];
+  user?: Maybe<User>;
+};
+
 export enum UserRoles {
   Admin = 'ADMIN',
   Doctor = 'DOCTOR',
@@ -588,7 +638,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
-  MutationResponse: ( AppointmentPayload ) | ( AuthPayload ) | ( NotificationPayload ) | ( PatientPayload ) | ( QueuePayload ) | ( TransactionPayload ) | ( UserInfoPayload );
+  MutationResponse: ( AdminAuthPayload ) | ( AppointmentPayload ) | ( AuthPayload ) | ( NotificationPayload ) | ( PatientPayload ) | ( QueuePayload ) | ( TransactionPayload ) | ( UserInfoPayload ) | ( UserPayload );
   QueryResponse: never;
 };
 
@@ -598,6 +648,8 @@ export type ResolversTypes = {
   AddPatientResult: AddPatientResult;
   AddTransaction: AddTransaction;
   AddUserInformation: AddUserInformation;
+  Admin: ResolverTypeWrapper<Admin>;
+  AdminAuthPayload: ResolverTypeWrapper<AdminAuthPayload>;
   Appointment: ResolverTypeWrapper<Appointment>;
   AppointmentPayload: ResolverTypeWrapper<AppointmentPayload>;
   AuthPayload: ResolverTypeWrapper<AuthPayload>;
@@ -632,6 +684,7 @@ export type ResolversTypes = {
   User: ResolverTypeWrapper<User>;
   UserInfoPayload: ResolverTypeWrapper<UserInfoPayload>;
   UserInformation: ResolverTypeWrapper<UserInformation>;
+  UserPayload: ResolverTypeWrapper<UserPayload>;
   UserRoles: UserRoles;
 };
 
@@ -641,6 +694,8 @@ export type ResolversParentTypes = {
   AddPatientResult: AddPatientResult;
   AddTransaction: AddTransaction;
   AddUserInformation: AddUserInformation;
+  Admin: Admin;
+  AdminAuthPayload: AdminAuthPayload;
   Appointment: Appointment;
   AppointmentPayload: AppointmentPayload;
   AuthPayload: AuthPayload;
@@ -669,6 +724,27 @@ export type ResolversParentTypes = {
   User: User;
   UserInfoPayload: UserInfoPayload;
   UserInformation: UserInformation;
+  UserPayload: UserPayload;
+};
+
+export type AdminResolvers<ContextType = any, ParentType extends ResolversParentTypes['Admin'] = ResolversParentTypes['Admin']> = {
+  _id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  cardId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  password?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  username?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type AdminAuthPayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['AdminAuthPayload'] = ResolversParentTypes['AdminAuthPayload']> = {
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  credentials?: Resolver<Maybe<ResolversTypes['Admin']>, ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  refreshToken?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type AppointmentResolvers<ContextType = any, ParentType extends ResolversParentTypes['Appointment'] = ResolversParentTypes['Appointment']> = {
@@ -691,22 +767,24 @@ export type AppointmentPayloadResolvers<ContextType = any, ParentType extends Re
 };
 
 export type AuthPayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['AuthPayload'] = ResolversParentTypes['AuthPayload']> = {
-  accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  accessToken?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  refreshToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  refreshToken?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
+  addAdmin?: Resolver<Maybe<ResolversTypes['AdminAuthPayload']>, ParentType, ContextType, RequireFields<MutationAddAdminArgs, 'password' | 'username'>>;
   addPatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddPatientArgs>>;
   addPatientResult?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddPatientResultArgs>>;
   addQueue?: Resolver<Maybe<ResolversTypes['QueuePayload']>, ParentType, ContextType, Partial<MutationAddQueueArgs>>;
   addTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<MutationAddTransactionArgs>>;
   addUserInformation?: Resolver<ResolversTypes['UserInfoPayload'], ParentType, ContextType, Partial<MutationAddUserInformationArgs>>;
   deleteAccount?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationDeleteAccountArgs, 'id' | 'password'>>;
+  loginAdmin?: Resolver<Maybe<ResolversTypes['AdminAuthPayload']>, ParentType, ContextType, RequireFields<MutationLoginAdminArgs, 'password' | 'username'>>;
   loginUser?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginUserArgs, 'email' | 'password'>>;
   register?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'email' | 'password'>>;
   removeAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, Partial<MutationRemoveAppointmentArgs>>;
@@ -717,10 +795,11 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
   updateAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, RequireFields<MutationUpdateAppointmentArgs, 'status'>>;
   updatePatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationUpdatePatientArgs>>;
   updateTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<MutationUpdateTransactionArgs>>;
+  verifyEmail?: Resolver<ResolversTypes['UserPayload'], ParentType, ContextType, RequireFields<MutationVerifyEmailArgs, 'id'>>;
 };
 
 export type MutationResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['MutationResponse'] = ResolversParentTypes['MutationResponse']> = {
-  __resolveType: TypeResolveFn<'AppointmentPayload' | 'AuthPayload' | 'NotificationPayload' | 'PatientPayload' | 'QueuePayload' | 'TransactionPayload' | 'UserInfoPayload', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'AdminAuthPayload' | 'AppointmentPayload' | 'AuthPayload' | 'NotificationPayload' | 'PatientPayload' | 'QueuePayload' | 'TransactionPayload' | 'UserInfoPayload' | 'UserPayload', ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -905,7 +984,17 @@ export type UserInformationResolvers<ContextType = any, ParentType extends Resol
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type UserPayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['UserPayload'] = ResolversParentTypes['UserPayload']> = {
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type Resolvers<ContextType = any> = {
+  Admin?: AdminResolvers<ContextType>;
+  AdminAuthPayload?: AdminAuthPayloadResolvers<ContextType>;
   Appointment?: AppointmentResolvers<ContextType>;
   AppointmentPayload?: AppointmentPayloadResolvers<ContextType>;
   AuthPayload?: AuthPayloadResolvers<ContextType>;
@@ -927,5 +1016,6 @@ export type Resolvers<ContextType = any> = {
   User?: UserResolvers<ContextType>;
   UserInfoPayload?: UserInfoPayloadResolvers<ContextType>;
   UserInformation?: UserInformationResolvers<ContextType>;
+  UserPayload?: UserPayloadResolvers<ContextType>;
 };
 

@@ -63,7 +63,11 @@ const queries = {
     return TransactionService.transactions();
   },
 
-  getTransaction: async (_: any, args: QueryGetTransactionArgs) => {
+  getTransaction: async (
+    _: any,
+    args: QueryGetTransactionArgs,
+    _context: any
+  ) => {
     const getTransaction = await TransactionService.getTransaction(args);
 
     return getTransaction;
@@ -79,7 +83,14 @@ const queries = {
     return getNotification;
   },
 
-  getQueue: async (_: any, args: QueryGetQueueArgs) => {
+  getQueue: async (_: any, args: QueryGetQueueArgs, context: any) => {
+    if (context.user.userRole !== "DOCTOR") {
+      return throwCustomError(
+        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+        ErrorTypes.FORBIDDEN
+      );
+    }
+
     const getQueue = await QueueService.getQueue(args);
 
     return getQueue;

@@ -6,6 +6,7 @@ import {
   MutationLoginUserArgs,
   MutationRegisterArgs,
   MutationRemoveUserArgs,
+  MutationVerifyEmailArgs,
   QueryGetUserArgs,
   QueryGetUserInformationArgs,
 } from "../generated/types";
@@ -317,6 +318,49 @@ class UserService {
       code: 200,
       success: true,
       message: "Your account has been deleted",
+    };
+  }
+
+  async verifyEmail({ id }: MutationVerifyEmailArgs) {
+    const verifyUser = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
+      where: {
+        _id: id,
+      },
+    });
+
+    if (!verifyUser) {
+      return throwCustomError(
+        "No user records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
+    }
+
+    await User.update({ _id: verifyUser._id }, { emailVerified: true });
+
+    const userResponse = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
+      where: {
+        _id: verifyUser._id,
+      },
+    });
+
+    if (!userResponse) {
+      return throwCustomError(
+        "No user records match the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
+    }
+
+    return {
+      code: 200,
+      success: true,
+      message: "Email verified",
+      user: userResponse,
     };
   }
 }

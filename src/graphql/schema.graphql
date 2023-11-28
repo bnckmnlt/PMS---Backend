@@ -40,6 +40,16 @@ enum Gender {
   FEMALE
 }
 
+type Admin {
+  _id: ID!
+  role: String!
+  username: String!
+  password: String!
+  cardId: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
 type User {
   _id: ID!
   userRole: UserRoles!
@@ -253,8 +263,15 @@ type AuthPayload implements MutationResponse {
   success: Boolean!
   message: String!
   user: User
-  refreshToken: String!
-  accessToken: String!
+  refreshToken: String
+  accessToken: String
+}
+
+type UserPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  user: User
 }
 
 type UserInfoPayload implements MutationResponse {
@@ -300,6 +317,14 @@ type QueuePayload implements MutationResponse {
   queue: Queue
 }
 
+type AdminAuthPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  credentials: Admin
+  refreshToken: String
+}
+
 type Query {
   users: [User]
   getUser(email: String, _id: String): AuthPayload!
@@ -335,6 +360,7 @@ type Query {
 type Mutation {
   register(userRole: UserRoles, email: String!, password: String!): AuthPayload!
   loginUser(email: String!, password: String!): AuthPayload!
+  verifyEmail(id: String!): UserPayload!
   addUserInformation(input: AddUserInformation): UserInfoPayload!
   removeUser(id: String!): AuthPayload!
   deleteAccount(id: String!, password: String!): AuthPayload!
@@ -358,6 +384,17 @@ type Mutation {
   removeTransaction(_tid: String): TransactionPayload!
 
   addQueue(id: String): QueuePayload
+
+  addAdmin(
+    username: String!
+    password: String!
+    cardId: String
+  ): AdminAuthPayload
+  loginAdmin(
+    username: String!
+    password: String!
+    cardId: String
+  ): AdminAuthPayload
 }
 
 type Subscription {

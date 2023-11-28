@@ -19,9 +19,13 @@ import {
   MutationDeleteAccountArgs,
   MutationAddPatientResultArgs,
   MutationAddQueueArgs,
+  MutationAddAdminArgs,
+  MutationLoginAdminArgs,
+  MutationVerifyEmailArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import QueueService from "../services/queue.service";
+import AdminService from "../services/admin.service";
 
 const mutations = {
   register: async (_: any, args: MutationRegisterArgs) => {
@@ -72,13 +76,13 @@ const mutations = {
     return setAppointment;
   },
 
-  addPatient: async (_: any, args: MutationAddPatientArgs) => {
-    // if (context.user.userRole !== "PERSONNEL") {
-    //   return throwCustomError(
-    //     "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
-    //     ErrorTypes.FORBIDDEN
-    //   );
-    // }
+  addPatient: async (_: any, args: MutationAddPatientArgs, context: any) => {
+    if (context.user.userRole !== "PERSONNEL") {
+      return throwCustomError(
+        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+        ErrorTypes.FORBIDDEN
+      );
+    }
 
     const addPatient = await PatientService.addPatient(args);
 
@@ -114,7 +118,18 @@ const mutations = {
     return updatePatient;
   },
 
-  addTransaction: async (_: any, args: MutationAddTransactionArgs) => {
+  addTransaction: async (
+    _: any,
+    args: MutationAddTransactionArgs,
+    context: any
+  ) => {
+    if (context.user.userRole !== "PERSONNEL") {
+      return throwCustomError(
+        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+        ErrorTypes.FORBIDDEN
+      );
+    }
+
     const addPatient = await TransactionService.addTransaction(args);
 
     return addPatient;
@@ -162,6 +177,31 @@ const mutations = {
     const addQueue = await QueueService.addQueue(args);
 
     return addQueue;
+  },
+
+  addAdmin: async (_: any, args: MutationAddAdminArgs, _context: any) => {
+    const addAdmin = await AdminService.addAdmin(args);
+
+    return addAdmin;
+  },
+
+  loginAdmin: async (_: any, args: MutationLoginAdminArgs, context: any) => {
+    if (context.user.userRole !== "ADMIN") {
+      return throwCustomError(
+        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+        ErrorTypes.FORBIDDEN
+      );
+    }
+
+    const loginAdmin = await AdminService.loginAdmin(args);
+
+    return loginAdmin;
+  },
+
+  verifyEmail: async (_: any, args: MutationVerifyEmailArgs, _context: any) => {
+    const verifyEmail = await UserService.verifyEmail(args);
+
+    return verifyEmail;
   },
 };
 

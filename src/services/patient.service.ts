@@ -18,7 +18,6 @@ import { Notification } from "../entity/Notification";
 import { DevelopmentDataSource } from "../data-source";
 import { PatientInQueue } from "../entity/PatientInQueue";
 import { Queue } from "../entity/Queue";
-// import { TransactionDetails } from "src/entity/TransactionDetails";
 
 class PatientService {
   async patients() {
@@ -47,7 +46,7 @@ class PatientService {
     const patient = await Patient.findOne({
       relations: {
         doctor: {
-          userInformation: true
+          userInformation: true,
         },
         transactions: {
           paymentDetails: true,
@@ -114,6 +113,22 @@ class PatientService {
         return throwCustomError("Consultant not found", ErrorTypes.NOT_FOUND);
       }
 
+      const verifyQueue = await Queue.findOne({
+        relations: {
+          user: true,
+          queue: true,
+        },
+        where: {
+          user: {
+            _id: consultant._id,
+          },
+        },
+      });
+
+      if (!verifyQueue) {
+        return throwCustomError("Queue not found", ErrorTypes.NOT_FOUND);
+      }
+
       const newPatient = Patient.create({
         cardId: input?.cardId,
         doctor: consultant,
@@ -159,22 +174,6 @@ class PatientService {
         description: "A new patient has been added in queue",
         payload: patientResponse,
       });
-
-      const verifyQueue = await Queue.findOne({
-        relations: {
-          user: true,
-          queue: true,
-        },
-        where: {
-          user: {
-            _id: consultant._id,
-          },
-        },
-      });
-
-      if (!verifyQueue) {
-        return throwCustomError("Queue not found", ErrorTypes.NOT_FOUND);
-      }
 
       const verifyPatientInQueue = await PatientInQueue.findOne({
         relations: {

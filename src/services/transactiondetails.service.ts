@@ -40,7 +40,7 @@ class TransactionService {
       relations: {
         paymentDetails: true,
         patientDetails: {
-          doctor: true,
+          doctor: { userInformation: true },
           appointment: true,
         },
       },
