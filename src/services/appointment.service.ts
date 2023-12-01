@@ -9,14 +9,17 @@ import {
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import { User } from "../entity/User";
+import { PatientVisit } from "../entity/PatientVisit";
 
 class AppointmentService {
   async appointments() {
     return Appointment.find({
       relations: {
         patientDetails: {
-          doctor: {
-            userInformation: true,
+          visits: {
+            doctor: {
+              userInformation: true,
+            },
           },
           transactions: {
             paymentDetails: true,
@@ -40,8 +43,10 @@ class AppointmentService {
     const appointment = await Appointment.findOne({
       relations: {
         patientDetails: {
-          doctor: {
-            userInformation: true,
+          visits: {
+            doctor: {
+              userInformation: true,
+            },
           },
           transactions: {
             paymentDetails: true,
@@ -78,7 +83,12 @@ class AppointmentService {
     try {
       const patient = await Patient.findOne({
         relations: {
-          doctor: true,
+          appointment: true,
+          visits: {
+            doctor: {
+              userInformation: true,
+            },
+          },
         },
         where: [
           { emailAddress: input?.emailAddress },
@@ -107,7 +117,6 @@ class AppointmentService {
       }
 
       const newPatient = Patient.create({
-        doctor: consultant,
         firstName: input?.firstName,
         lastName: input?.lastName,
         middleName: input?.middleName,
@@ -116,14 +125,20 @@ class AppointmentService {
         emailAddress: input?.emailAddress,
         address: input?.address,
         gender: input?.gender,
+      });
+
+      const newPatientVisit = PatientVisit.create({
+        doctor: consultant,
+        patient: newPatient,
         bodyTemp: input?.bodyTemp || 0,
         heartRate: input?.heartRate || 0,
         weight: input?.weight || 0,
         height: input?.height || 0,
-        findings: "",
-        medications: "",
+        diagnosis: "",
+        prescription: "",
       });
 
+      await queryRunner.manager.save(newPatientVisit);
       const newPatientResponse = await queryRunner.manager.save(newPatient);
 
       const appointment = await Appointment.findOneBy({
@@ -193,10 +208,10 @@ class AppointmentService {
       );
     }
 
-    const patientResponse = await Patient.preload({
+    const patientResponse = await PatientVisit.preload({
       _id: appointment.patientDetails._id,
       status: "COMPLETED",
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(``).toISOString(),
     });
 
     return {

@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import * as bcrypt from "bcrypt";
 import {
   Entity,
   Column,
@@ -10,7 +11,6 @@ import {
   OneToMany,
 } from "typeorm";
 import { UserInformation } from "./UserInformation";
-import * as bcrypt from "bcrypt";
 import { Notification } from "./Notification";
 
 @Entity("users")
@@ -30,6 +30,15 @@ export class User extends BaseEntity {
   @Column("boolean", { default: false })
   emailVerified!: boolean;
 
+  @Column("boolean", { default: false })
+  isApproved!: boolean;
+
+  @Column("boolean", { default: false })
+  isActive!: boolean;
+
+  @Column("boolean", { default: false })
+  isBlocked!: boolean;
+
   @OneToOne(() => UserInformation, (userinformation) => userinformation.user)
   @JoinColumn()
   userInformation: UserInformation;
@@ -37,15 +46,17 @@ export class User extends BaseEntity {
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
 
-  @Column("text", { default: new Date().toISOString() })
+  @Column("text")
   createdAt!: string;
 
-  @Column("text", { default: new Date().toISOString() })
+  @Column("text")
   updatedAt!: string;
 
   @BeforeInsert()
   async function() {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    this.createdAt = new Date().toISOString();
+    this.updatedAt = new Date().toISOString();
   }
 }

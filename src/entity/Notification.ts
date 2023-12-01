@@ -7,7 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { Patient } from "./Patient";
+import { PatientVisit } from "./PatientVisit";
 import { User } from "./User";
 
 @Entity("notifications")
@@ -27,9 +27,9 @@ export class Notification extends BaseEntity {
   @Column("text")
   description!: string;
 
-  @OneToOne(() => Patient)
+  @OneToOne(() => PatientVisit)
   @JoinColumn()
-  payload!: Patient;
+  payload!: PatientVisit;
 
   @Column("boolean", { default: false })
   isRead!: boolean;

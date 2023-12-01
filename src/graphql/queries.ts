@@ -11,6 +11,7 @@ import {
   QueryGetTransactionArgs,
   QueryGetNotificationArgs,
   QueryGetQueueArgs,
+  QueryGetPatientVisitArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import NotificationsService from "../services/notifications.service";
@@ -46,19 +47,29 @@ const queries = {
     return PatientService.patients();
   },
 
+  patientVisits: async (_: any) => {
+    return PatientService.patientVisits();
+  },
+
   getPatient: async (_: any, args: QueryGetPatientArgs) => {
     const getPatient = await PatientService.getPatient(args);
 
     return getPatient;
   },
 
-  transactions: async (_: any, _args: any, context: any) => {
-    if (context.user.userRole !== "PERSONNEL") {
-      return throwCustomError(
-        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
-        ErrorTypes.FORBIDDEN
-      );
-    }
+  getPatientVisit: async (_: any, args: QueryGetPatientVisitArgs) => {
+    const getPatientVisit = await PatientService.getPatientVisit(args);
+
+    return getPatientVisit;
+  },
+
+  transactions: async (_: any, _args: any, _context: any) => {
+    // if (context.user.userRole !== "PERSONNEL") {
+    //   return throwCustomError(
+    //     "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
+    //     ErrorTypes.FORBIDDEN
+    //   );
+    // }
 
     return TransactionService.transactions();
   },

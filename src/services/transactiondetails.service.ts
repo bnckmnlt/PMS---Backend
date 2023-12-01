@@ -1,5 +1,4 @@
 import { DevelopmentDataSource } from "../data-source";
-import { Patient } from "../entity/Patient";
 import { TransactionDetails } from "../entity/TransactionDetails";
 import { PaymentDetails } from "../entity/PaymentDetails";
 import {
@@ -10,21 +9,28 @@ import {
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import { publishTransactionCompleted } from "../graphql/subscriptions";
+import { PatientVisit } from "../entity/PatientVisit";
 
 class TransactionService {
+  //[x] All transactions; Done
   async transactions() {
     return await TransactionDetails.find({
       relations: {
         patientDetails: {
-          doctor: { userInformation: true },
-          appointment: true,
-          transactions: true,
+          patient: {
+            appointment: true,
+            transactions: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
         },
         paymentDetails: true,
       },
     });
   }
 
+  //[x] Get transaction; Done
   async getTransaction({
     tid,
     cardId,
@@ -38,22 +44,31 @@ class TransactionService {
 
     const transaction = await TransactionDetails.findOne({
       relations: {
-        paymentDetails: true,
         patientDetails: {
-          doctor: { userInformation: true },
-          appointment: true,
+          patient: {
+            appointment: true,
+            transactions: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
         },
+        paymentDetails: true,
       },
       where: [
         { _tid: input.tid },
         {
           patientDetails: {
-            cardId: input.cardId,
+            patient: {
+              cardId: input.cardId,
+            },
           },
         },
         {
           patientDetails: {
-            contactNumber: input.contactNumber,
+            patient: {
+              contactNumber: input.contactNumber,
+            },
           },
         },
       ],
@@ -74,6 +89,7 @@ class TransactionService {
     };
   }
 
+  //[x] Add transaction; Done
   async addTransaction({ input }: MutationAddTransactionArgs) {
     const inputs: any = {
       _id: input?._id,
@@ -85,7 +101,7 @@ class TransactionService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const getPatient = await Patient.findOne({
+      const getPatient = await PatientVisit.findOne({
         where: { _id: inputs._id },
       });
 
@@ -98,13 +114,23 @@ class TransactionService {
 
       const transaction = await TransactionDetails.findOne({
         relations: {
-          patientDetails: true,
+          patientDetails: {
+            patient: {
+              appointment: true,
+            },
+            doctor: {
+              userInformation: true,
+            },
+            transaction: {
+              paymentDetails: true,
+            },
+          },
           paymentDetails: true,
         },
         where: [
           {
             patientDetails: {
-              _id: getPatient?._id,
+              _id: inputs._id,
             },
           },
         ],
@@ -120,8 +146,15 @@ class TransactionService {
       const createTransaction = TransactionDetails.create({
         patientDetails: getPatient,
       });
+
       const transactionResponse =
         await queryRunner.manager.save(createTransaction);
+
+      await queryRunner.manager.update(
+        PatientVisit,
+        { _id: getPatient._id },
+        { transaction: transactionResponse }
+      );
 
       const paymentDetails = await PaymentDetails.findOne({
         relations: {
@@ -129,7 +162,9 @@ class TransactionService {
         },
         where: {
           transactionDetails: {
-            patientDetails: { _id: getPatient?._id },
+            patientDetails: {
+              _id: getPatient?._id,
+            },
           },
         },
       });
@@ -147,13 +182,14 @@ class TransactionService {
       });
 
       await queryRunner.manager.save(newPaymentDetails);
+
       await queryRunner.commitTransaction();
 
       return {
         code: 200,
         success: true,
         message: "Transaction added",
-        transaction: transaction,
+        transaction: transactionResponse,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -163,14 +199,20 @@ class TransactionService {
     }
   }
 
+  //[x] Update transactions; Done
   async updateTransaction({ input }: MutationUpdateTransactionArgs) {
     const transaction = await TransactionDetails.findOne({
       relations: {
-        paymentDetails: true,
         patientDetails: {
-          doctor: true,
-          appointment: true,
+          patient: {
+            appointment: true,
+            transactions: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
         },
+        paymentDetails: true,
       },
       where: {
         _tid: input?._tid || "",
@@ -208,34 +250,31 @@ class TransactionService {
 
     const updatedTransaction = await TransactionDetails.findOne({
       relations: {
-        paymentDetails: true,
         patientDetails: {
-          doctor: true,
-          appointment: true,
+          patient: {
+            appointment: true,
+            transactions: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
         },
+        paymentDetails: true,
       },
       where: {
         _tid: transaction._tid,
       },
     });
 
-    if (!updatedTransaction) {
-      return throwCustomError(
-        "No transaction records match the input criteria",
-        ErrorTypes.NOT_FOUND
-      );
-    }
-
-    publishTransactionCompleted(updatedTransaction);
-
     return {
       code: 200,
       success: true,
       message: "Transaction updated",
-      transaction: transaction,
+      transaction: updatedTransaction,
     };
   }
 
+  //[x] Transaction removal; Done
   async removeTransaction(args: MutationRemoveTransactionArgs) {
     const queryRunner = DevelopmentDataSource.createQueryRunner();
 
@@ -244,11 +283,16 @@ class TransactionService {
     try {
       const getTransaction = await TransactionDetails.findOne({
         relations: {
-          paymentDetails: true,
           patientDetails: {
-            doctor: true,
-            appointment: true,
+            patient: {
+              appointment: true,
+              transactions: true,
+            },
+            doctor: {
+              userInformation: true,
+            },
           },
+          paymentDetails: true,
         },
         where: {
           _tid: args._tid || "",

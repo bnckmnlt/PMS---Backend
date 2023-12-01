@@ -7,19 +7,15 @@ import {
   OneToOne,
   JoinColumn,
   OneToMany,
-  ManyToOne,
 } from "typeorm";
 import { Appointment } from "./Appointment";
+import { PatientVisit } from "./PatientVisit";
 import { TransactionDetails } from "./TransactionDetails";
-import { User } from "./User";
 
 @Entity("patients")
 export class Patient extends BaseEntity {
   @PrimaryGeneratedColumn("uuid")
   _id!: string;
-
-  @Column("text", { default: "PENDING" })
-  status!: string;
 
   @Column("varchar", { length: 255, default: "" })
   cardId!: string;
@@ -35,8 +31,8 @@ export class Patient extends BaseEntity {
   @JoinColumn()
   transactions: TransactionDetails[];
 
-  @ManyToOne(() => User, (user) => user.userInformation.patients)
-  doctor!: User;
+  @OneToMany(() => PatientVisit, (visit) => visit.patient)
+  visits: PatientVisit[];
 
   @Column("varchar", { length: 255 })
   firstName!: string;
@@ -62,29 +58,8 @@ export class Patient extends BaseEntity {
   @Column("text")
   gender!: string;
 
-  @Column("text")
-  bodyTemp!: number;
-
-  @Column("text")
-  heartRate!: number;
-
-  @Column("text")
-  weight!: number;
-
-  @Column("text")
-  height!: number;
-
-  @Column("text", { default: "NONE" })
-  allergy: string;
-
-  @Column("text", { default: "NONE" })
-  findings: string;
-
-  @Column("text", { default: "NONE" })
-  medications: string;
-
   @Column("text", { default: new Date().toISOString() })
-  createdAt: string;
+  createdAt!: string;
 
   @Column("text", { default: new Date().toISOString() })
   updatedAt!: string;

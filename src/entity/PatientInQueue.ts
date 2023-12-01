@@ -7,7 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { Patient } from "./Patient";
+import { PatientVisit } from "./PatientVisit";
 import { Queue } from "./Queue";
 
 @Entity("patient_in_queue")
@@ -18,12 +18,9 @@ export class PatientInQueue extends BaseEntity {
   @ManyToOne(() => Queue, (queue) => queue.queue)
   queue: Queue;
 
-  @OneToOne(() => Patient)
+  @OneToOne(() => PatientVisit)
   @JoinColumn()
-  patient: Patient;
-
-  @Column("boolean", { default: false })
-  isAccepted!: boolean;
+  patient: PatientVisit;
 
   @Column("boolean", { default: false })
   isDone!: boolean;

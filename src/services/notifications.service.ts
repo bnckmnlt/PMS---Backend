@@ -3,17 +3,31 @@ import { QueryGetNotificationArgs } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 
 class NotificationService {
+  //[x] All notifications; Done
   async notifications() {
     return await Notification.find({
       relations: {
         user: {
           userInformation: true,
         },
-        payload: { doctor: true, transactions: true, appointment: true },
+        payload: {
+          patient: {
+            transactions: true,
+            appointment: true,
+            visits: true,
+          },
+          transaction: {
+            paymentDetails: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
+        },
       },
     });
   }
 
+  //[x] Get notification; Done
   async getNotification({ id }: QueryGetNotificationArgs) {
     const input = {
       _id: id || "",
@@ -22,9 +36,17 @@ class NotificationService {
       relations: {
         user: { userInformation: true },
         payload: {
-          doctor: true,
-          transactions: true,
-          appointment: true,
+          patient: {
+            transactions: true,
+            appointment: true,
+            visits: true,
+          },
+          transaction: {
+            paymentDetails: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
         },
       },
       where: {

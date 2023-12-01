@@ -3,12 +3,9 @@ import {
   BaseEntity,
   Column,
   Entity,
-  JoinColumn,
-  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { Patient } from "./Patient";
 import { User } from "./User";
 
 @Entity("users_information")
@@ -17,7 +14,13 @@ export class UserInformation extends BaseEntity {
   _id!: string;
 
   @OneToOne(() => User, (user) => user.userInformation)
-  user: User;
+  user!: User;
+
+  @Column("text", { default: "" })
+  image: string;
+
+  @Column("varchar", { length: 255, default: "" })
+  cardId: string;
 
   @Column("varchar", { length: 255 })
   firstName!: string;
@@ -31,15 +34,14 @@ export class UserInformation extends BaseEntity {
   @Column("text")
   contactNumber!: string;
 
-  @Column("text")
+  @Column("text", { default: "NONE" })
   specialization: string;
 
   @Column("text", { default: "NONE" })
   schedule: string;
 
-  @OneToMany(() => Patient, (patient) => patient.doctor)
-  @JoinColumn()
-  patients: Patient[];
+  @Column("text", { default: new Date().toISOString() })
+  createdAt!: string;
 
   @Column("text", { default: new Date().toISOString() })
   updatedAt!: string;

@@ -3,9 +3,11 @@ import * as bcrypt from "bcrypt";
 import {
   MutationAddUserInformationArgs,
   MutationDeleteAccountArgs,
+  MutationLoginRfidArgs,
   MutationLoginUserArgs,
   MutationRegisterArgs,
   MutationRemoveUserArgs,
+  MutationUpdateUserInformationArgs,
   MutationVerifyEmailArgs,
   QueryGetUserArgs,
   QueryGetUserInformationArgs,
@@ -28,6 +30,8 @@ const registerSchema = Joi.object({
 
 const userInformationSchema = Joi.object({
   _id: Joi.string().uuid(),
+  image: Joi.string().optional(),
+  cardId: Joi.string().optional(),
   firstName: Joi.string().pattern(new RegExp("[a-zA-z ]{3,}")),
   lastName: Joi.string().pattern(new RegExp("[a-zA-Z ]{3,}")),
   middleName: Joi.string().pattern(new RegExp("[a-zA-Z ]{3,}")),
@@ -39,18 +43,22 @@ const userInformationSchema = Joi.object({
 });
 
 class UserService {
+  //[x] All users; done
   async users() {
     return User.find({
       relations: {
         userInformation: true,
+        notifications: true,
       },
     });
   }
 
+  //[x] Get user; Done
   async getUser({ email, _id }: QueryGetUserArgs) {
     const getUser = await User.findOne({
       relations: {
         userInformation: true,
+        notifications: true,
       },
       where: [{ _id: _id || "" }, { email: email || "" }],
     });
@@ -70,6 +78,7 @@ class UserService {
     };
   }
 
+  //[x] Get user information; done
   async getUserInformation({ _id }: QueryGetUserInformationArgs) {
     const userInfo = await UserInformation.findOne({
       relations: {
@@ -97,6 +106,7 @@ class UserService {
     };
   }
 
+  // [x] Register User; Done
   async registerUser(args: MutationRegisterArgs) {
     try {
       await registerSchema.validateAsync(args, { abortEarly: false });
@@ -136,6 +146,7 @@ class UserService {
     };
   }
 
+  // [x] Login User; Done
   async loginUser(args: MutationLoginUserArgs) {
     try {
       await registerSchema.validateAsync(args, { abortEarly: false });
@@ -160,6 +171,10 @@ class UserService {
       );
     }
 
+    const {
+      userInformation: { _id, user, ...userInformation },
+    } = verifyUser;
+
     const passwordMatched = await bcrypt.compare(password, verifyUser.password);
 
     if (!passwordMatched) {
@@ -171,7 +186,7 @@ class UserService {
 
     const refreshToken = authUtilities.signToken(
       {
-        "_id": verifyUser._id,
+        "_id": _id,
         "userRole": verifyUser.userRole,
       },
       {
@@ -181,14 +196,9 @@ class UserService {
 
     const accessToken = authUtilities.signToken(
       {
-        "_id": verifyUser._id,
+        "_id": _id,
         "userRole": verifyUser.userRole,
-        "UserInformation": {
-          "firstname": verifyUser.userInformation.firstName,
-          "lastname": verifyUser.userInformation.lastName,
-          "middleName": verifyUser.userInformation.middleName,
-          "specialization": verifyUser.userInformation.specialization,
-        },
+        userInformation,
       },
       { expiresIn: "15m" }
     );
@@ -203,6 +213,63 @@ class UserService {
     };
   }
 
+  // async loginRfidAdmin({cardId}: MutationLoginRfidArgs) {
+
+  //   return {
+  //     code: 200,
+  //     success: true,
+  //     message: "Logged in successfully"
+  //   }
+  // }
+
+  async loginRfid({ cardId }: MutationLoginRfidArgs) {
+    const getUser = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
+      where: {
+        userInformation: {
+          cardId: cardId,
+        },
+      },
+    });
+
+    if (!getUser) {
+      return throwCustomError(
+        "No user record matches the input criteria",
+        ErrorTypes.NOT_FOUND
+      );
+    }
+
+    const { _id, ...userInformation } = getUser;
+
+    const refreshToken = authUtilities.signToken(
+      {
+        "_id": getUser._id,
+        "userRole": getUser.userRole,
+      },
+      { expiresIn: "7d" }
+    );
+
+    const accessToken = authUtilities.signToken(
+      {
+        "_id": getUser._id,
+        "userInformation": userInformation,
+      },
+      { expiresIn: "15m" }
+    );
+
+    return {
+      code: 200,
+      success: true,
+      message: "Successfully logged in",
+      user: getUser,
+      refreshToken,
+      accessToken,
+    };
+  }
+
+  // [x] Add UserInformation; Done
   async addUserInformation({ input }: MutationAddUserInformationArgs) {
     try {
       await userInformationSchema.validateAsync(input, { abortEarly: false });
@@ -226,16 +293,25 @@ class UserService {
       );
     }
 
+    const { userInformation } = verifyUser;
+
+    if (userInformation) {
+      return throwCustomError(
+        "An existing record already exists",
+        ErrorTypes.CONFLICT
+      );
+    }
+
     const res = await UserInformation.save({
-      _id: verifyUser._id,
       user: verifyUser,
+      image: input?.image || undefined,
+      cardId: input?.cardId || undefined,
       firstName: input?.firstName,
       lastName: input?.lastName,
       middleName: input?.middleName,
       contactNumber: input?.contactNumber,
       specialization: input?.specialization || undefined,
       schedule: input?.schedule || undefined,
-      updatedAt: new Date().toISOString(),
     });
 
     return {
@@ -243,6 +319,54 @@ class UserService {
       success: true,
       message: "User information updated",
       userInformation: res,
+    };
+  }
+
+  // [x] Update UserInformation; Done
+  async updateUserInformation({ input }: MutationUpdateUserInformationArgs) {
+    const verifyUser = await User.findOne({
+      relations: {
+        userInformation: true,
+      },
+      where: {
+        _id: input?._id,
+      },
+    });
+
+    if (!verifyUser) {
+      return throwCustomError(
+        "No user records match the input criteria",
+        ErrorTypes.CONFLICT
+      );
+    }
+
+    const { userInformation } = verifyUser;
+
+    if (!userInformation) {
+      return throwCustomError(
+        "No user records match the input criteria",
+        ErrorTypes.CONFLICT
+      );
+    }
+
+    await UserInformation.update(
+      { _id: verifyUser.userInformation._id },
+      {
+        image: input?.image || undefined,
+        cardId: input?.cardId || undefined,
+        firstName: input?.firstName || undefined,
+        lastName: input?.lastName || undefined,
+        middleName: input?.middleName || undefined,
+        contactNumber: input?.contactNumber || undefined,
+        specialization: input?.specialization || undefined,
+        schedule: input?.schedule || undefined,
+      }
+    );
+
+    return {
+      code: 200,
+      success: true,
+      userInformation,
     };
   }
 

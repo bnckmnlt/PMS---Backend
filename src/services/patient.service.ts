@@ -1,41 +1,44 @@
-import { Patient } from "../entity/Patient";
+import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import {
+  MutationAddExistingPatientArgs,
   MutationAddPatientArgs,
   MutationAddPatientResultArgs,
   MutationRemovePatientArgs,
   MutationUpdatePatientArgs,
   QueryGetPatientArgs,
+  QueryGetPatientVisitArgs,
 } from "../generated/types";
-import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
+import { Patient } from "../entity/Patient";
 import { User } from "../entity/User";
-import {
-  publishAddPatientInPersonnel,
-  publishAddPatientInQueue,
-  publishPatientCompleted,
-  publishPatientRecord,
-} from "../graphql/subscriptions";
 import { Notification } from "../entity/Notification";
 import { DevelopmentDataSource } from "../data-source";
 import { PatientInQueue } from "../entity/PatientInQueue";
 import { Queue } from "../entity/Queue";
+import { PatientVisit } from "../entity/PatientVisit";
+import { Between } from "typeorm";
 
 class PatientService {
+  //[x] All patients; Done
   async patients() {
     return await Patient.find({
       relations: {
-        doctor: {
-          userInformation: true,
+        visits: {
+          doctor: {
+            userInformation: true,
+          },
+          transaction: {
+            paymentDetails: true,
+          },
         },
         transactions: {
           paymentDetails: true,
         },
-        appointment: {
-          patientDetails: true,
-        },
+        appointment: true,
       },
     });
   }
 
+  //[ ] Get patient record
   async getPatient({ contactNumber, cardId, _id }: QueryGetPatientArgs) {
     const input: any = {
       contactNumber,
@@ -45,13 +48,18 @@ class PatientService {
 
     const patient = await Patient.findOne({
       relations: {
-        doctor: {
-          userInformation: true,
+        visits: {
+          doctor: {
+            userInformation: true,
+          },
+          transaction: {
+            paymentDetails: true,
+          },
         },
         transactions: {
           paymentDetails: true,
         },
-        appointment: { patientDetails: true },
+        appointment: true,
       },
       where: [
         { _id: input._id },
@@ -75,6 +83,59 @@ class PatientService {
     };
   }
 
+  //[x] All patient visits record; Done
+  async patientVisits() {
+    return await PatientVisit.find({
+      relations: {
+        patient: {
+          transactions: true,
+          appointment: true,
+          visits: true,
+        },
+        transaction: {
+          paymentDetails: true,
+        },
+        doctor: {
+          userInformation: true,
+        },
+      },
+    });
+  }
+
+  //[x] Get patient visit
+  async getPatientVisit({ id }: QueryGetPatientVisitArgs) {
+    const patient = await PatientVisit.findOne({
+      relations: {
+        patient: {
+          transactions: true,
+          appointment: true,
+          visits: true,
+        },
+        transaction: {
+          paymentDetails: true,
+        },
+        doctor: {
+          userInformation: true,
+        },
+      },
+      where: {
+        _id: id,
+      },
+    });
+
+    if (!patient) {
+      return throwCustomError("Patient record not found", ErrorTypes.NOT_FOUND);
+    }
+
+    return {
+      code: 200,
+      success: true,
+      message: "Patient visit found",
+      patient,
+    };
+  }
+
+  //[x] Add patient; Done
   async addPatient({ input }: MutationAddPatientArgs) {
     const queryRunner = DevelopmentDataSource.createQueryRunner();
 
@@ -83,12 +144,23 @@ class PatientService {
     try {
       const patient = await Patient.findOne({
         relations: {
-          doctor: true,
+          visits: {
+            doctor: {
+              userInformation: true,
+            },
+            transaction: {
+              paymentDetails: true,
+            },
+          },
+          transactions: {
+            paymentDetails: true,
+          },
           appointment: true,
         },
         where: [
           { contactNumber: input?.contactNumber },
           { emailAddress: input?.emailAddress },
+          { cardId: input?.cardId },
         ],
       });
 
@@ -102,7 +174,6 @@ class PatientService {
       const consultant = await User.findOne({
         relations: {
           userInformation: true,
-          notifications: true,
         },
         where: {
           _id: input?.doctor,
@@ -131,31 +202,40 @@ class PatientService {
 
       const newPatient = Patient.create({
         cardId: input?.cardId,
-        doctor: consultant,
         firstName: input?.firstName,
-        lastName: input?.lastName,
         middleName: input?.middleName,
+        lastName: input?.lastName,
         age: input?.age,
         contactNumber: input?.contactNumber,
         emailAddress: input?.emailAddress,
         address: input?.address,
         gender: input?.gender,
+      });
+
+      const newPatientResponse = await queryRunner.manager.save(newPatient);
+
+      const newPatientVisit = PatientVisit.create({
+        doctor: consultant,
+        patient: newPatientResponse,
         bodyTemp: input?.bodyTemp,
         heartRate: input?.heartRate,
         weight: input?.weight,
         height: input?.height,
       });
 
-      const patientResponse = await newPatient.save();
+      const newPatientVisitResponse =
+        await queryRunner.manager.save(newPatientVisit);
 
       const notification = await Notification.findOne({
         relations: {
           user: true,
-          payload: true,
+          payload: {
+            patient: true,
+          },
         },
         where: {
           payload: {
-            _id: patientResponse._id,
+            _id: newPatientVisitResponse._id,
           },
         },
       });
@@ -172,8 +252,10 @@ class PatientService {
         user: consultant,
         title: "New patient added",
         description: "A new patient has been added in queue",
-        payload: patientResponse,
+        payload: newPatientVisit,
       });
+
+      await queryRunner.manager.save(addNotification);
 
       const verifyPatientInQueue = await PatientInQueue.findOne({
         relations: {
@@ -182,7 +264,7 @@ class PatientService {
         },
         where: {
           patient: {
-            _id: patientResponse._id,
+            _id: newPatientVisit._id,
           },
         },
       });
@@ -193,26 +275,18 @@ class PatientService {
 
       const addPatientInQueue = PatientInQueue.create({
         queue: verifyQueue,
-        patient: newPatient,
+        patient: newPatientVisit,
       });
 
-      const saveNotification = await addNotification.save();
-      const addPatientInQueueResponse = await addPatientInQueue.save();
-
-      await queryRunner.manager.save(newPatient);
-      await queryRunner.manager.save(addNotification);
       await queryRunner.manager.save(addPatientInQueue);
-      await queryRunner.commitTransaction();
 
-      publishPatientRecord(saveNotification);
-      publishAddPatientInPersonnel(patientResponse);
-      publishAddPatientInQueue(addPatientInQueueResponse);
+      await queryRunner.commitTransaction();
 
       return {
         code: 200,
         success: true,
         message: "Patient added",
-        patient: patientResponse,
+        patient: newPatientResponse,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -222,6 +296,177 @@ class PatientService {
     }
   }
 
+  //[x] Add existing patient; Done
+  async addExistingPatient({ input }: MutationAddExistingPatientArgs) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const queryRunner = DevelopmentDataSource.createQueryRunner();
+
+    queryRunner.connect();
+    queryRunner.startTransaction();
+    try {
+      const getPatient = await Patient.findOne({
+        relations: {
+          visits: {
+            doctor: {
+              userInformation: true,
+            },
+            transaction: {
+              paymentDetails: true,
+            },
+          },
+          transactions: {
+            paymentDetails: true,
+          },
+          appointment: true,
+        },
+        where: {
+          _id: input?._id,
+        },
+      });
+
+      if (!getPatient) {
+        return throwCustomError(
+          "No patient record/s matched the criteria",
+          ErrorTypes.NOT_FOUND
+        );
+      }
+
+      const consultant = await User.findOne({
+        relations: {
+          userInformation: true,
+        },
+        where: {
+          _id: input?.doctor,
+        },
+      });
+
+      if (!consultant) {
+        return throwCustomError("Consultant not found", ErrorTypes.NOT_FOUND);
+      }
+
+      const verifyQueue = await Queue.findOne({
+        relations: {
+          user: true,
+          queue: true,
+        },
+        where: {
+          user: {
+            _id: consultant._id,
+          },
+        },
+      });
+
+      if (!verifyQueue) {
+        return throwCustomError("Queue not found", ErrorTypes.NOT_FOUND);
+      }
+
+      const getRecord = await PatientVisit.findOne({
+        relations: {
+          patient: true,
+        },
+        where: {
+          patient: {
+            _id: getPatient._id,
+          },
+          createdAt: Between(today.toISOString(), tomorrow.toISOString()),
+        },
+      });
+
+      if (getRecord) {
+        return throwCustomError(
+          "Patient visit in queue exists",
+          ErrorTypes.CONFLICT
+        );
+      }
+
+      const newPatientVisit = PatientVisit.create({
+        doctor: consultant,
+        patient: getPatient,
+        bodyTemp: input?.bodyTemp,
+        heartRate: input?.heartRate,
+        weight: input?.weight,
+        height: input?.height,
+      });
+
+      const newPatientVisitResponse =
+        await queryRunner.manager.save(newPatientVisit);
+
+      const notification = await Notification.findOne({
+        relations: {
+          user: true,
+          payload: {
+            patient: true,
+          },
+        },
+        where: {
+          payload: {
+            _id: newPatientVisitResponse._id,
+          },
+        },
+      });
+
+      if (notification) {
+        return throwCustomError(
+          "Notification record already exists",
+          ErrorTypes.CONFLICT
+        );
+      }
+
+      const addNotification = Notification.create({
+        type: "ADDED",
+        user: consultant,
+        title: "New patient added",
+        description: "A new patient has been added in queue",
+        payload: newPatientVisit,
+      });
+
+      await queryRunner.manager.save(addNotification);
+
+      const verifyPatientInQueue = await PatientInQueue.findOne({
+        relations: {
+          queue: true,
+          patient: true,
+        },
+        where: {
+          patient: {
+            _id: newPatientVisit._id,
+          },
+        },
+      });
+
+      if (verifyPatientInQueue) {
+        return throwCustomError("Patient in queue exists", ErrorTypes.CONFLICT);
+      }
+
+      const addPatientInQueue = PatientInQueue.create({
+        queue: verifyQueue,
+        patient: newPatientVisit,
+      });
+
+      await queryRunner.manager.save(addPatientInQueue);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        code: 200,
+        success: true,
+        message: "Patient added",
+        patient: getPatient,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  //[x] Update Patient Info; Done
   async updatePatient({ input }: MutationUpdatePatientArgs) {
     const inputs: any = {
       _id: input?._id,
@@ -233,17 +478,23 @@ class PatientService {
       emailAddress: input?.emailAddress,
       address: input?.address,
       gender: input?.gender,
-      doctor: input?.doctor,
-      bodyTemp: input?.bodyTemp,
-      heartRate: input?.heartRate,
-      weight: input?.weight,
-      height: input?.height,
     };
 
     const patient = await Patient.findOne({
       relations: {
-        doctor: true,
-        appointment: true,
+        visits: {
+          doctor: {
+            userInformation: true,
+          },
+          transaction: true,
+          patient: true,
+        },
+        transactions: {
+          paymentDetails: true,
+        },
+        appointment: {
+          patientDetails: true,
+        },
       },
       where: {
         _id: input?._id,
@@ -280,25 +531,42 @@ class PatientService {
         age: inputs?.age || undefined,
         contactNumber: inputs?.contactNumber || undefined,
         emailAddress: inputs?.emailAddress || undefined,
-        doctor: consultant,
         address: inputs?.address || undefined,
         gender: inputs?.gender || undefined,
-        bodyTemp: inputs?.bodyTemp || undefined,
-        heartRate: inputs?.heartRate || undefined,
-        weight: inputs?.weight || undefined,
-        height: inputs?.height || undefined,
         updatedAt: new Date().toISOString(),
       }
     );
+
+    const patientResponse = await Patient.findOne({
+      relations: {
+        visits: {
+          doctor: {
+            userInformation: true,
+          },
+          transaction: true,
+          patient: true,
+        },
+        transactions: {
+          paymentDetails: true,
+        },
+        appointment: {
+          patientDetails: true,
+        },
+      },
+      where: {
+        _id: patient._id,
+      },
+    });
 
     return {
       code: 200,
       success: true,
       message: "Patiend record updated",
-      patient: patient,
+      patient: patientResponse,
     };
   }
 
+  //[x] Add patient result; Done
   async addPatientResult({ input }: MutationAddPatientResultArgs) {
     const queryRunner = DevelopmentDataSource.createQueryRunner();
 
@@ -308,21 +576,29 @@ class PatientService {
       const inputs: any = {
         _id: input?._id,
         allergy: input?.allergy,
-        findings: input?.findings,
-        medications: input?.medications,
+        diagnosis: input?.diagnosis,
+        prescription: input?.prescription,
         status: input?.status,
       };
 
-      const patient = await Patient.findOne({
+      const patient = await PatientVisit.findOne({
         relations: {
-          doctor: { userInformation: true },
-          appointment: true,
+          patient: {
+            transactions: true,
+            appointment: true,
+            visits: true,
+          },
+          transaction: {
+            paymentDetails: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
         },
         where: {
           _id: input?._id,
         },
       });
-      console.log(patient);
 
       if (!patient) {
         return throwCustomError(
@@ -331,10 +607,10 @@ class PatientService {
         );
       }
 
-      await queryRunner.manager.update(Patient, patient._id, {
+      await queryRunner.manager.update(PatientVisit, patient._id, {
         allergy: inputs?.allergy,
-        findings: inputs?.findings,
-        medications: inputs?.medications,
+        diagnosis: inputs?.diagnosis,
+        prescription: inputs?.prescription,
         status: inputs.status,
         updatedAt: new Date().toISOString(),
       });
@@ -342,7 +618,13 @@ class PatientService {
       const notification = await Notification.findOne({
         relations: {
           user: { userInformation: true },
-          payload: { doctor: true, appointment: true, transactions: true },
+          payload: {
+            doctor: {
+              userInformation: true,
+            },
+            patient: true,
+            transaction: true,
+          },
         },
         where: {
           payload: {
@@ -365,7 +647,7 @@ class PatientService {
         updatedAt: new Date().toISOString(),
       });
 
-      if (!patient.appointment) {
+      if (!patient.patient.appointment) {
         const patientInQueue = await PatientInQueue.findOne({
           relations: {
             patient: true,
@@ -385,64 +667,39 @@ class PatientService {
         }
 
         await queryRunner.manager.update(PatientInQueue, patientInQueue, {
-          isAccepted: true,
           isDone: true,
           updatedAt: new Date().toISOString(),
         });
-
-        const updatedNotification = await Notification.findOne({
-          relations: {
-            user: { userInformation: true },
-            payload: { doctor: true, appointment: true, transactions: true },
-          },
-          where: {
-            _id: notification._id,
-          },
-        });
-
-        if (!updatedNotification) {
-          return throwCustomError(
-            "Something went wrong",
-            ErrorTypes.BAD_REQUEST
-          );
-        }
-
-        const updatedQueue = await PatientInQueue.findOne({
-          relations: {
-            patient: {
-              doctor: true,
-              transactions: {
-                paymentDetails: true,
-              },
-              appointment: true,
-            },
-          },
-          where: {
-            patient: {
-              _id: patient._id,
-            },
-          },
-        });
-
-        if (!updatedQueue) {
-          return throwCustomError(
-            "Something went wrong",
-            ErrorTypes.BAD_REQUEST
-          );
-        }
-
-        console.log(updatedQueue);
-        publishAddPatientInQueue(updatedQueue);
-        publishPatientCompleted(updatedNotification);
       }
 
       await queryRunner.commitTransaction();
+
+      const patientResponse = await Patient.findOne({
+        relations: {
+          visits: {
+            doctor: {
+              userInformation: true,
+            },
+            transaction: true,
+            patient: true,
+          },
+          transactions: {
+            paymentDetails: true,
+          },
+          appointment: {
+            patientDetails: true,
+          },
+        },
+        where: {
+          visits: { _id: input?._id },
+        },
+      });
 
       return {
         code: 200,
         success: true,
         message: "Patiend record updated",
-        patient: patient,
+        patient: patientResponse,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -452,6 +709,7 @@ class PatientService {
     }
   }
 
+  //[x] Patient removal; Done
   async removePatient({ id }: MutationRemovePatientArgs) {
     const queryRunner = DevelopmentDataSource.createQueryRunner();
 
@@ -460,9 +718,7 @@ class PatientService {
     try {
       const patient = await Patient.findOne({
         relations: {
-          doctor: {
-            userInformation: true,
-          },
+          visits: true,
           appointment: true,
           transactions: {
             paymentDetails: true,
@@ -481,22 +737,51 @@ class PatientService {
         );
       }
 
-      const notification = await Notification.findOne({
+      const patientVisit = await PatientVisit.find({
+        relations: {
+          patient: {
+            transactions: true,
+            appointment: true,
+            visits: true,
+          },
+          transaction: {
+            paymentDetails: true,
+          },
+          doctor: {
+            userInformation: true,
+          },
+        },
+        where: {
+          patient: {
+            _id: id,
+          },
+        },
+      });
+
+      const notification = await Notification.find({
         relations: {
           user: {
             userInformation: true,
           },
           payload: {
-            doctor: true,
-            appointment: true,
-            transactions: {
+            patient: {
+              transactions: true,
+              appointment: true,
+              visits: true,
+            },
+            transaction: {
               paymentDetails: true,
+            },
+            doctor: {
+              userInformation: true,
             },
           },
         },
         where: {
           payload: {
-            _id: patient._id,
+            patient: {
+              _id: id,
+            },
           },
         },
       });
@@ -508,20 +793,28 @@ class PatientService {
         );
       }
 
-      const inQueue = await PatientInQueue.findOne({
+      const inQueue = await PatientInQueue.find({
         relations: {
           patient: {
-            doctor: true,
-            transactions: {
+            patient: {
+              transactions: true,
+              appointment: true,
+              visits: true,
+            },
+            transaction: {
               paymentDetails: true,
             },
-            appointment: true,
+            doctor: {
+              userInformation: true,
+            },
           },
           queue: true,
         },
         where: {
           patient: {
-            _id: patient._id,
+            patient: {
+              _id: id,
+            },
           },
         },
       });
@@ -533,13 +826,9 @@ class PatientService {
         );
       }
 
-      publishAddPatientInPersonnel(patient);
-      publishAddPatientInQueue(inQueue);
-      publishPatientRecord(notification);
-      publishPatientCompleted(notification);
-
       await queryRunner.manager.remove(notification);
       await queryRunner.manager.remove(inQueue);
+      await queryRunner.manager.remove(patientVisit);
       await queryRunner.manager.remove(patient);
 
       await queryRunner.commitTransaction();

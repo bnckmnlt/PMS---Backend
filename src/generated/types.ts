@@ -17,6 +17,15 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type AddExistingPatient = {
+  _id: Scalars['String']['input'];
+  bodyTemp: Scalars['Int']['input'];
+  doctor: Scalars['String']['input'];
+  heartRate: Scalars['Int']['input'];
+  height: Scalars['Int']['input'];
+  weight: Scalars['Int']['input'];
+};
+
 export type AddPatient = {
   address: Scalars['String']['input'];
   age: Scalars['Int']['input'];
@@ -37,8 +46,8 @@ export type AddPatient = {
 export type AddPatientResult = {
   _id: Scalars['ID']['input'];
   allergy: Scalars['String']['input'];
-  findings: Scalars['String']['input'];
-  medications: Scalars['String']['input'];
+  diagnosis: Scalars['String']['input'];
+  prescription: Scalars['String']['input'];
   status: CheckupStatus;
 };
 
@@ -49,8 +58,10 @@ export type AddTransaction = {
 
 export type AddUserInformation = {
   _id: Scalars['ID']['input'];
+  cardId?: InputMaybe<Scalars['String']['input']>;
   contactNumber: Scalars['String']['input'];
   firstName: Scalars['String']['input'];
+  image?: InputMaybe<Scalars['String']['input']>;
   lastName: Scalars['String']['input'];
   middleName: Scalars['String']['input'];
   schedule?: InputMaybe<Scalars['String']['input']>;
@@ -127,6 +138,7 @@ export enum Gender {
 export type Mutation = {
   __typename?: 'Mutation';
   addAdmin?: Maybe<AdminAuthPayload>;
+  addExistingPatient: PatientPayload;
   addPatient: PatientPayload;
   addPatientResult: PatientPayload;
   addQueue?: Maybe<QueuePayload>;
@@ -134,6 +146,7 @@ export type Mutation = {
   addUserInformation: UserInfoPayload;
   deleteAccount: AuthPayload;
   loginAdmin?: Maybe<AdminAuthPayload>;
+  loginRfid: AuthPayload;
   loginUser: AuthPayload;
   register: AuthPayload;
   removeAppointment: AppointmentPayload;
@@ -144,6 +157,7 @@ export type Mutation = {
   updateAppointment: AppointmentPayload;
   updatePatient: PatientPayload;
   updateTransaction: TransactionPayload;
+  updateUserInformation: UserInfoPayload;
   verifyEmail: UserPayload;
 };
 
@@ -152,6 +166,11 @@ export type MutationAddAdminArgs = {
   cardId?: InputMaybe<Scalars['String']['input']>;
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
+};
+
+
+export type MutationAddExistingPatientArgs = {
+  input?: InputMaybe<AddExistingPatient>;
 };
 
 
@@ -190,6 +209,11 @@ export type MutationLoginAdminArgs = {
   cardId?: InputMaybe<Scalars['String']['input']>;
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
+};
+
+
+export type MutationLoginRfidArgs = {
+  cardId: Scalars['String']['input'];
 };
 
 
@@ -250,6 +274,11 @@ export type MutationUpdateTransactionArgs = {
 };
 
 
+export type MutationUpdateUserInformationArgs = {
+  input?: InputMaybe<UpdateUserInformation>;
+};
+
+
 export type MutationVerifyEmailArgs = {
   id: Scalars['String']['input'];
 };
@@ -266,7 +295,7 @@ export type Notification = {
   createdAt: Scalars['String']['output'];
   description: Scalars['String']['output'];
   isRead: Scalars['Boolean']['output'];
-  payload?: Maybe<Patient>;
+  payload?: Maybe<PatientVisit>;
   title: Scalars['String']['output'];
   type?: Maybe<NotificationType>;
   updatedAt: Scalars['String']['output'];
@@ -291,35 +320,26 @@ export type Patient = {
   _id: Scalars['ID']['output'];
   address: Scalars['String']['output'];
   age: Scalars['Int']['output'];
-  allergy?: Maybe<Scalars['String']['output']>;
   appointment?: Maybe<Appointment>;
-  bodyTemp?: Maybe<Scalars['Int']['output']>;
   cardId?: Maybe<Scalars['String']['output']>;
   contactNumber: Scalars['String']['output'];
-  createdAt?: Maybe<Scalars['String']['output']>;
-  doctor: User;
+  createdAt: Scalars['String']['output'];
   emailAddress: Scalars['String']['output'];
-  findings?: Maybe<Scalars['String']['output']>;
   firstName: Scalars['String']['output'];
   gender: Gender;
-  heartRate?: Maybe<Scalars['Int']['output']>;
-  height?: Maybe<Scalars['Int']['output']>;
   lastName: Scalars['String']['output'];
-  medications?: Maybe<Scalars['String']['output']>;
   middleName: Scalars['String']['output'];
-  status: CheckupStatus;
   transactions?: Maybe<Array<Maybe<TransactionDetails>>>;
   updatedAt: Scalars['String']['output'];
-  weight?: Maybe<Scalars['Int']['output']>;
+  visits?: Maybe<Array<Maybe<PatientVisit>>>;
 };
 
 export type PatientInQueue = {
   __typename?: 'PatientInQueue';
   createdAt: Scalars['String']['output'];
-  isAccepted: Scalars['Boolean']['output'];
   isDone: Scalars['Boolean']['output'];
   number?: Maybe<Scalars['Int']['output']>;
-  patient?: Maybe<Patient>;
+  patient?: Maybe<PatientVisit>;
   updatedAt: Scalars['String']['output'];
 };
 
@@ -328,6 +348,33 @@ export type PatientPayload = MutationResponse & {
   code: Scalars['String']['output'];
   message: Scalars['String']['output'];
   patient?: Maybe<Patient>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type PatientVisit = {
+  __typename?: 'PatientVisit';
+  _id: Scalars['ID']['output'];
+  allergy?: Maybe<Scalars['String']['output']>;
+  bodyTemp?: Maybe<Scalars['Int']['output']>;
+  createdAt: Scalars['String']['output'];
+  diagnosis?: Maybe<Scalars['String']['output']>;
+  doctor: User;
+  heartRate?: Maybe<Scalars['Int']['output']>;
+  height?: Maybe<Scalars['Int']['output']>;
+  patient?: Maybe<Patient>;
+  prescription?: Maybe<Scalars['String']['output']>;
+  session?: Maybe<Scalars['Int']['output']>;
+  status: CheckupStatus;
+  transaction?: Maybe<TransactionDetails>;
+  updatedAt: Scalars['String']['output'];
+  weight?: Maybe<Scalars['Int']['output']>;
+};
+
+export type PatientVisitPayload = MutationResponse & {
+  __typename?: 'PatientVisitPayload';
+  code: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  patient?: Maybe<PatientVisit>;
   success: Scalars['Boolean']['output'];
 };
 
@@ -350,11 +397,13 @@ export type Query = {
   getAppointment: AppointmentPayload;
   getNotification?: Maybe<NotificationPayload>;
   getPatient: PatientPayload;
+  getPatientVisit?: Maybe<PatientVisitPayload>;
   getQueue?: Maybe<QueuePayload>;
   getTransaction: TransactionPayload;
   getUser: AuthPayload;
   getUserInformation: UserInfoPayload;
   notifications?: Maybe<Array<Maybe<Notification>>>;
+  patientVisits?: Maybe<Array<Maybe<PatientVisit>>>;
   patients?: Maybe<Array<Maybe<Patient>>>;
   transactions?: Maybe<Array<Maybe<TransactionDetails>>>;
   users?: Maybe<Array<Maybe<User>>>;
@@ -380,8 +429,13 @@ export type QueryGetPatientArgs = {
 };
 
 
+export type QueryGetPatientVisitArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type QueryGetQueueArgs = {
-  id: Scalars['ID']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -472,7 +526,7 @@ export type TransactionDetails = {
   __typename?: 'TransactionDetails';
   _tid: Scalars['ID']['output'];
   createdAt: Scalars['String']['output'];
-  patientDetails?: Maybe<Patient>;
+  patientDetails?: Maybe<PatientVisit>;
   paymentDetails?: Maybe<PaymentDetails>;
   status: TransactionStatus;
   updatedAt: Scalars['String']['output'];
@@ -495,17 +549,12 @@ export type UpdatePatient = {
   _id: Scalars['ID']['input'];
   address?: InputMaybe<Scalars['String']['input']>;
   age?: InputMaybe<Scalars['Int']['input']>;
-  bodyTemp?: InputMaybe<Scalars['Int']['input']>;
   contactNumber?: InputMaybe<Scalars['String']['input']>;
-  doctor?: InputMaybe<Scalars['String']['input']>;
   emailAddress?: InputMaybe<Scalars['String']['input']>;
   firstName?: InputMaybe<Scalars['String']['input']>;
   gender?: InputMaybe<Gender>;
-  heartRate?: InputMaybe<Scalars['Int']['input']>;
-  height?: InputMaybe<Scalars['Int']['input']>;
   lastName?: InputMaybe<Scalars['String']['input']>;
   middleName?: InputMaybe<Scalars['String']['input']>;
-  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type UpdateTransaction = {
@@ -519,12 +568,27 @@ export type UpdateTransaction = {
   total: Scalars['Int']['input'];
 };
 
+export type UpdateUserInformation = {
+  _id: Scalars['ID']['input'];
+  cardId?: InputMaybe<Scalars['String']['input']>;
+  contactNumber?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  image?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  schedule?: InputMaybe<Scalars['String']['input']>;
+  specialization?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type User = {
   __typename?: 'User';
   _id: Scalars['ID']['output'];
   createdAt: Scalars['String']['output'];
   email: Scalars['String']['output'];
   emailVerified: Scalars['Boolean']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isApproved: Scalars['Boolean']['output'];
+  isBlocked: Scalars['Boolean']['output'];
   notifications?: Maybe<Array<Maybe<Notification>>>;
   password: Scalars['String']['output'];
   updatedAt: Scalars['String']['output'];
@@ -543,15 +607,17 @@ export type UserInfoPayload = MutationResponse & {
 export type UserInformation = {
   __typename?: 'UserInformation';
   _id: Scalars['ID']['output'];
+  cardId?: Maybe<Scalars['String']['output']>;
   contactNumber: Scalars['String']['output'];
+  createdAt: Scalars['String']['output'];
   firstName: Scalars['String']['output'];
+  image?: Maybe<Scalars['String']['output']>;
   lastName: Scalars['String']['output'];
   middleName: Scalars['String']['output'];
-  patients?: Maybe<Array<Maybe<Patient>>>;
   schedule?: Maybe<Scalars['String']['output']>;
   specialization?: Maybe<Specialization>;
   updatedAt: Scalars['String']['output'];
-  user?: Maybe<User>;
+  user: User;
 };
 
 export type UserPayload = MutationResponse & {
@@ -638,12 +704,13 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
-  MutationResponse: ( AdminAuthPayload ) | ( AppointmentPayload ) | ( AuthPayload ) | ( NotificationPayload ) | ( PatientPayload ) | ( QueuePayload ) | ( TransactionPayload ) | ( UserInfoPayload ) | ( UserPayload );
+  MutationResponse: ( AdminAuthPayload ) | ( AppointmentPayload ) | ( AuthPayload ) | ( NotificationPayload ) | ( PatientPayload ) | ( PatientVisitPayload ) | ( QueuePayload ) | ( TransactionPayload ) | ( UserInfoPayload ) | ( UserPayload );
   QueryResponse: never;
 };
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AddExistingPatient: AddExistingPatient;
   AddPatient: AddPatient;
   AddPatientResult: AddPatientResult;
   AddTransaction: AddTransaction;
@@ -667,6 +734,8 @@ export type ResolversTypes = {
   Patient: ResolverTypeWrapper<Patient>;
   PatientInQueue: ResolverTypeWrapper<PatientInQueue>;
   PatientPayload: ResolverTypeWrapper<PatientPayload>;
+  PatientVisit: ResolverTypeWrapper<PatientVisit>;
+  PatientVisitPayload: ResolverTypeWrapper<PatientVisitPayload>;
   PaymentDetails: ResolverTypeWrapper<PaymentDetails>;
   Query: ResolverTypeWrapper<{}>;
   QueryResponse: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['QueryResponse']>;
@@ -681,6 +750,7 @@ export type ResolversTypes = {
   TransactionStatus: TransactionStatus;
   UpdatePatient: UpdatePatient;
   UpdateTransaction: UpdateTransaction;
+  UpdateUserInformation: UpdateUserInformation;
   User: ResolverTypeWrapper<User>;
   UserInfoPayload: ResolverTypeWrapper<UserInfoPayload>;
   UserInformation: ResolverTypeWrapper<UserInformation>;
@@ -690,6 +760,7 @@ export type ResolversTypes = {
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  AddExistingPatient: AddExistingPatient;
   AddPatient: AddPatient;
   AddPatientResult: AddPatientResult;
   AddTransaction: AddTransaction;
@@ -709,6 +780,8 @@ export type ResolversParentTypes = {
   Patient: Patient;
   PatientInQueue: PatientInQueue;
   PatientPayload: PatientPayload;
+  PatientVisit: PatientVisit;
+  PatientVisitPayload: PatientVisitPayload;
   PaymentDetails: PaymentDetails;
   Query: {};
   QueryResponse: ResolversInterfaceTypes<ResolversParentTypes>['QueryResponse'];
@@ -721,6 +794,7 @@ export type ResolversParentTypes = {
   TransactionPayload: TransactionPayload;
   UpdatePatient: UpdatePatient;
   UpdateTransaction: UpdateTransaction;
+  UpdateUserInformation: UpdateUserInformation;
   User: User;
   UserInfoPayload: UserInfoPayload;
   UserInformation: UserInformation;
@@ -778,6 +852,7 @@ export type AuthPayloadResolvers<ContextType = any, ParentType extends Resolvers
 
 export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   addAdmin?: Resolver<Maybe<ResolversTypes['AdminAuthPayload']>, ParentType, ContextType, RequireFields<MutationAddAdminArgs, 'password' | 'username'>>;
+  addExistingPatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddExistingPatientArgs>>;
   addPatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddPatientArgs>>;
   addPatientResult?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationAddPatientResultArgs>>;
   addQueue?: Resolver<Maybe<ResolversTypes['QueuePayload']>, ParentType, ContextType, Partial<MutationAddQueueArgs>>;
@@ -785,6 +860,7 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
   addUserInformation?: Resolver<ResolversTypes['UserInfoPayload'], ParentType, ContextType, Partial<MutationAddUserInformationArgs>>;
   deleteAccount?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationDeleteAccountArgs, 'id' | 'password'>>;
   loginAdmin?: Resolver<Maybe<ResolversTypes['AdminAuthPayload']>, ParentType, ContextType, RequireFields<MutationLoginAdminArgs, 'password' | 'username'>>;
+  loginRfid?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginRfidArgs, 'cardId'>>;
   loginUser?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationLoginUserArgs, 'email' | 'password'>>;
   register?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'email' | 'password'>>;
   removeAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, Partial<MutationRemoveAppointmentArgs>>;
@@ -795,11 +871,12 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
   updateAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, RequireFields<MutationUpdateAppointmentArgs, 'status'>>;
   updatePatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<MutationUpdatePatientArgs>>;
   updateTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<MutationUpdateTransactionArgs>>;
+  updateUserInformation?: Resolver<ResolversTypes['UserInfoPayload'], ParentType, ContextType, Partial<MutationUpdateUserInformationArgs>>;
   verifyEmail?: Resolver<ResolversTypes['UserPayload'], ParentType, ContextType, RequireFields<MutationVerifyEmailArgs, 'id'>>;
 };
 
 export type MutationResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['MutationResponse'] = ResolversParentTypes['MutationResponse']> = {
-  __resolveType: TypeResolveFn<'AdminAuthPayload' | 'AppointmentPayload' | 'AuthPayload' | 'NotificationPayload' | 'PatientPayload' | 'QueuePayload' | 'TransactionPayload' | 'UserInfoPayload' | 'UserPayload', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'AdminAuthPayload' | 'AppointmentPayload' | 'AuthPayload' | 'NotificationPayload' | 'PatientPayload' | 'PatientVisitPayload' | 'QueuePayload' | 'TransactionPayload' | 'UserInfoPayload' | 'UserPayload', ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -810,7 +887,7 @@ export type NotificationResolvers<ContextType = any, ParentType extends Resolver
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   description?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   isRead?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  payload?: Resolver<Maybe<ResolversTypes['Patient']>, ParentType, ContextType>;
+  payload?: Resolver<Maybe<ResolversTypes['PatientVisit']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   type?: Resolver<Maybe<ResolversTypes['NotificationType']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -830,35 +907,26 @@ export type PatientResolvers<ContextType = any, ParentType extends ResolversPare
   _id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   address?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   age?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  allergy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   appointment?: Resolver<Maybe<ResolversTypes['Appointment']>, ParentType, ContextType>;
-  bodyTemp?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   cardId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contactNumber?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  createdAt?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  doctor?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   emailAddress?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  findings?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   firstName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   gender?: Resolver<ResolversTypes['Gender'], ParentType, ContextType>;
-  heartRate?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  height?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   lastName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  medications?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   middleName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  status?: Resolver<ResolversTypes['CheckupStatus'], ParentType, ContextType>;
   transactions?: Resolver<Maybe<Array<Maybe<ResolversTypes['TransactionDetails']>>>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  weight?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  visits?: Resolver<Maybe<Array<Maybe<ResolversTypes['PatientVisit']>>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type PatientInQueueResolvers<ContextType = any, ParentType extends ResolversParentTypes['PatientInQueue'] = ResolversParentTypes['PatientInQueue']> = {
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  isAccepted?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isDone?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   number?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  patient?: Resolver<Maybe<ResolversTypes['Patient']>, ParentType, ContextType>;
+  patient?: Resolver<Maybe<ResolversTypes['PatientVisit']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -867,6 +935,33 @@ export type PatientPayloadResolvers<ContextType = any, ParentType extends Resolv
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   patient?: Resolver<Maybe<ResolversTypes['Patient']>, ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PatientVisitResolvers<ContextType = any, ParentType extends ResolversParentTypes['PatientVisit'] = ResolversParentTypes['PatientVisit']> = {
+  _id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  allergy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  bodyTemp?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  diagnosis?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  doctor?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  heartRate?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  height?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  patient?: Resolver<Maybe<ResolversTypes['Patient']>, ParentType, ContextType>;
+  prescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  session?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['CheckupStatus'], ParentType, ContextType>;
+  transaction?: Resolver<Maybe<ResolversTypes['TransactionDetails']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  weight?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PatientVisitPayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['PatientVisitPayload'] = ResolversParentTypes['PatientVisitPayload']> = {
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  patient?: Resolver<Maybe<ResolversTypes['PatientVisit']>, ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -889,11 +984,13 @@ export type QueryResolvers<ContextType = any, ParentType extends ResolversParent
   getAppointment?: Resolver<ResolversTypes['AppointmentPayload'], ParentType, ContextType, Partial<QueryGetAppointmentArgs>>;
   getNotification?: Resolver<Maybe<ResolversTypes['NotificationPayload']>, ParentType, ContextType, Partial<QueryGetNotificationArgs>>;
   getPatient?: Resolver<ResolversTypes['PatientPayload'], ParentType, ContextType, Partial<QueryGetPatientArgs>>;
+  getPatientVisit?: Resolver<Maybe<ResolversTypes['PatientVisitPayload']>, ParentType, ContextType, RequireFields<QueryGetPatientVisitArgs, 'id'>>;
   getQueue?: Resolver<Maybe<ResolversTypes['QueuePayload']>, ParentType, ContextType, RequireFields<QueryGetQueueArgs, 'id'>>;
   getTransaction?: Resolver<ResolversTypes['TransactionPayload'], ParentType, ContextType, Partial<QueryGetTransactionArgs>>;
   getUser?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, Partial<QueryGetUserArgs>>;
   getUserInformation?: Resolver<ResolversTypes['UserInfoPayload'], ParentType, ContextType, RequireFields<QueryGetUserInformationArgs, '_id'>>;
   notifications?: Resolver<Maybe<Array<Maybe<ResolversTypes['Notification']>>>, ParentType, ContextType>;
+  patientVisits?: Resolver<Maybe<Array<Maybe<ResolversTypes['PatientVisit']>>>, ParentType, ContextType>;
   patients?: Resolver<Maybe<Array<Maybe<ResolversTypes['Patient']>>>, ParentType, ContextType>;
   transactions?: Resolver<Maybe<Array<Maybe<ResolversTypes['TransactionDetails']>>>, ParentType, ContextType>;
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
@@ -934,7 +1031,7 @@ export type SubscriptionResolvers<ContextType = any, ParentType extends Resolver
 export type TransactionDetailsResolvers<ContextType = any, ParentType extends ResolversParentTypes['TransactionDetails'] = ResolversParentTypes['TransactionDetails']> = {
   _tid?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  patientDetails?: Resolver<Maybe<ResolversTypes['Patient']>, ParentType, ContextType>;
+  patientDetails?: Resolver<Maybe<ResolversTypes['PatientVisit']>, ParentType, ContextType>;
   paymentDetails?: Resolver<Maybe<ResolversTypes['PaymentDetails']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['TransactionStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -954,6 +1051,9 @@ export type UserResolvers<ContextType = any, ParentType extends ResolversParentT
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   emailVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isApproved?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isBlocked?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   notifications?: Resolver<Maybe<Array<Maybe<ResolversTypes['Notification']>>>, ParentType, ContextType>;
   password?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -972,15 +1072,17 @@ export type UserInfoPayloadResolvers<ContextType = any, ParentType extends Resol
 
 export type UserInformationResolvers<ContextType = any, ParentType extends ResolversParentTypes['UserInformation'] = ResolversParentTypes['UserInformation']> = {
   _id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  cardId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contactNumber?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   firstName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  image?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   lastName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   middleName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  patients?: Resolver<Maybe<Array<Maybe<ResolversTypes['Patient']>>>, ParentType, ContextType>;
   schedule?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   specialization?: Resolver<Maybe<ResolversTypes['Specialization']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1005,6 +1107,8 @@ export type Resolvers<ContextType = any> = {
   Patient?: PatientResolvers<ContextType>;
   PatientInQueue?: PatientInQueueResolvers<ContextType>;
   PatientPayload?: PatientPayloadResolvers<ContextType>;
+  PatientVisit?: PatientVisitResolvers<ContextType>;
+  PatientVisitPayload?: PatientVisitPayloadResolvers<ContextType>;
   PaymentDetails?: PaymentDetailsResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   QueryResponse?: QueryResponseResolvers<ContextType>;

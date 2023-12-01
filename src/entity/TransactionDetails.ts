@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { PaymentDetails } from "./PaymentDetails";
-import { Patient } from "./Patient";
+import { PatientVisit } from "./PatientVisit";
 
 @Entity("transactions")
 export class TransactionDetails extends BaseEntity {
@@ -25,9 +25,9 @@ export class TransactionDetails extends BaseEntity {
   @JoinColumn()
   paymentDetails: PaymentDetails;
 
-  @ManyToOne(() => Patient, (patient) => patient.transactions)
+  @ManyToOne(() => PatientVisit, (patient) => patient.transaction)
   @JoinColumn()
-  patientDetails: Patient;
+  patientDetails: PatientVisit;
 
   @Column("text", { default: new Date().toISOString() })
   createdAt!: string;

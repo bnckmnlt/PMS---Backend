@@ -22,6 +22,9 @@ import {
   MutationAddAdminArgs,
   MutationLoginAdminArgs,
   MutationVerifyEmailArgs,
+  MutationUpdateUserInformationArgs,
+  MutationAddExistingPatientArgs,
+  MutationLoginRfidArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import QueueService from "../services/queue.service";
@@ -44,6 +47,15 @@ const mutations = {
     const addInformation = await UserService.addUserInformation(args);
 
     return addInformation;
+  },
+
+  updateUserInformation: async (
+    _: any,
+    args: MutationUpdateUserInformationArgs
+  ) => {
+    const updateUserInformation = await UserService.updateUserInformation(args);
+
+    return updateUserInformation;
   },
 
   removeUser: async (_: any, args: MutationRemoveUserArgs) => {
@@ -83,10 +95,15 @@ const mutations = {
         ErrorTypes.FORBIDDEN
       );
     }
-
     const addPatient = await PatientService.addPatient(args);
 
     return addPatient;
+  },
+
+  addExistingPatient: async (_: any, args: MutationAddExistingPatientArgs) => {
+    const addExistingPatient = await PatientService.addExistingPatient(args);
+
+    return addExistingPatient;
   },
 
   updatePatient: async (_: any, args: MutationUpdatePatientArgs) => {
@@ -202,6 +219,12 @@ const mutations = {
     const verifyEmail = await UserService.verifyEmail(args);
 
     return verifyEmail;
+  },
+
+  loginRfid: async (_: any, args: MutationLoginRfidArgs, _context: any) => {
+    const loginRfid = await UserService.loginRfid(args);
+
+    return loginRfid;
   },
 };
 

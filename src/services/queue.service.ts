@@ -12,9 +12,17 @@ class QueueService {
         },
         queue: {
           patient: {
-            doctor: true,
-            appointment: true,
-            transactions: true,
+            patient: {
+              transactions: true,
+              appointment: true,
+              visits: true,
+            },
+            transaction: {
+              paymentDetails: true,
+            },
+            doctor: {
+              userInformation: true,
+            },
           },
         },
       },
@@ -48,9 +56,17 @@ class QueueService {
         },
         queue: {
           patient: {
-            doctor: true,
-            appointment: true,
-            transactions: true,
+            patient: {
+              transactions: true,
+              appointment: true,
+              visits: true,
+            },
+            transaction: {
+              paymentDetails: true,
+            },
+            doctor: {
+              userInformation: true,
+            },
           },
         },
       },

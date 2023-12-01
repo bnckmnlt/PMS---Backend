@@ -58,25 +58,32 @@ type User {
   emailVerified: Boolean!
   userInformation: UserInformation
   notifications: [Notification]
+  isApproved: Boolean!
+  isActive: Boolean!
+  isBlocked: Boolean!
   createdAt: String!
   updatedAt: String!
 }
 
 type UserInformation {
   _id: ID!
-  user: User
+  user: User!
+  image: String
+  cardId: String
   firstName: String!
   lastName: String!
   middleName: String!
   contactNumber: String!
   specialization: Specialization
   schedule: String
-  patients: [Patient]
+  createdAt: String!
   updatedAt: String!
 }
 
 input AddUserInformation {
   _id: ID!
+  image: String
+  cardId: String
   firstName: String!
   lastName: String!
   middleName: String!
@@ -85,13 +92,24 @@ input AddUserInformation {
   schedule: String
 }
 
+input UpdateUserInformation {
+  _id: ID!
+  image: String
+  cardId: String
+  firstName: String
+  lastName: String
+  middleName: String
+  contactNumber: String
+  specialization: String
+  schedule: String
+}
+
 type Patient {
   _id: ID!
-  transactions: [TransactionDetails]
-  status: CheckupStatus!
   cardId: String
   appointment: Appointment
-  doctor: User!
+  transactions: [TransactionDetails]
+  visits: [PatientVisit]
   firstName: String!
   lastName: String!
   middleName: String!
@@ -100,14 +118,25 @@ type Patient {
   emailAddress: String!
   address: String!
   gender: Gender!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type PatientVisit {
+  _id: ID!
+  session: Int
+  status: CheckupStatus!
+  doctor: User!
+  patient: Patient
+  transaction: TransactionDetails
   bodyTemp: Int
   heartRate: Int
   weight: Int
   height: Int
   allergy: String
-  findings: String
-  medications: String
-  createdAt: String
+  diagnosis: String
+  prescription: String
+  createdAt: String!
   updatedAt: String!
 }
 
@@ -128,6 +157,15 @@ input AddPatient {
   height: Int!
 }
 
+input AddExistingPatient {
+  _id: String!
+  doctor: String!
+  bodyTemp: Int!
+  heartRate: Int!
+  weight: Int!
+  height: Int!
+}
+
 input UpdatePatient {
   _id: ID!
   firstName: String
@@ -138,18 +176,13 @@ input UpdatePatient {
   emailAddress: String
   address: String
   gender: Gender
-  doctor: String
-  bodyTemp: Int
-  heartRate: Int
-  weight: Int
-  height: Int
 }
 
 input AddPatientResult {
   _id: ID!
   allergy: String!
-  findings: String!
-  medications: String!
+  diagnosis: String!
+  prescription: String!
   status: CheckupStatus!
 }
 
@@ -184,7 +217,7 @@ type TransactionDetails {
   _tid: ID!
   status: TransactionStatus!
   paymentDetails: PaymentDetails
-  patientDetails: Patient
+  patientDetails: PatientVisit
   createdAt: String!
   updatedAt: String!
 }
@@ -223,7 +256,7 @@ type Notification {
   user: User!
   title: String!
   description: String!
-  payload: Patient
+  payload: PatientVisit
   isRead: Boolean!
   createdAt: String!
   updatedAt: String!
@@ -231,8 +264,7 @@ type Notification {
 
 type PatientInQueue {
   number: Int
-  patient: Patient
-  isAccepted: Boolean!
+  patient: PatientVisit
   isDone: Boolean!
   updatedAt: String!
   createdAt: String!
@@ -296,6 +328,13 @@ type PatientPayload implements MutationResponse {
   patient: Patient
 }
 
+type PatientVisitPayload implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  patient: PatientVisit
+}
+
 type TransactionPayload implements MutationResponse {
   code: String!
   success: Boolean!
@@ -338,6 +377,8 @@ type Query {
   ): AppointmentPayload!
 
   patients: [Patient]
+  patientVisits: [PatientVisit]
+  getPatientVisit(id: String!): PatientVisitPayload
   getPatient(
     contactNumber: String
     _id: String
@@ -354,7 +395,7 @@ type Query {
   notifications: [Notification]
   getNotification(id: String): NotificationPayload
 
-  getQueue(id: ID!): QueuePayload
+  getQueue(id: String!): QueuePayload
 }
 
 type Mutation {
@@ -362,8 +403,10 @@ type Mutation {
   loginUser(email: String!, password: String!): AuthPayload!
   verifyEmail(id: String!): UserPayload!
   addUserInformation(input: AddUserInformation): UserInfoPayload!
+  updateUserInformation(input: UpdateUserInformation): UserInfoPayload!
   removeUser(id: String!): AuthPayload!
   deleteAccount(id: String!, password: String!): AuthPayload!
+  loginRfid(cardId: String!): AuthPayload!
 
   setAppointment(input: SetAppointment): AppointmentPayload!
   updateAppointment(
@@ -375,6 +418,7 @@ type Mutation {
   removeAppointment(contactNumber: String, _apid: String): AppointmentPayload!
 
   addPatient(input: AddPatient): PatientPayload!
+  addExistingPatient(input: AddExistingPatient): PatientPayload!
   updatePatient(input: UpdatePatient): PatientPayload!
   addPatientResult(input: AddPatientResult): PatientPayload!
   removePatient(id: String!): PatientPayload!
