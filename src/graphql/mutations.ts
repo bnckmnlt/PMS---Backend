@@ -31,22 +31,46 @@ import QueueService from "../services/queue.service";
 import AdminService from "../services/admin.service";
 
 const mutations = {
-  register: async (_: any, args: MutationRegisterArgs) => {
-    const newUser = await UserService.registerUser(args);
-
-    return newUser;
-  },
-
   loginUser: async (_: any, args: MutationLoginUserArgs) => {
     const loginUser = await UserService.loginUser(args);
 
     return loginUser;
   },
 
+  loginRfid: async (_: any, args: MutationLoginRfidArgs, _context: any) => {
+    const loginRfid = await UserService.loginRfid(args);
+
+    return loginRfid;
+  },
+
+  loginAdmin: async (_: any, args: MutationLoginAdminArgs, _context: any) => {
+    const loginAdmin = await AdminService.loginAdmin(args);
+
+    return loginAdmin;
+  },
+
+  register: async (_: any, args: MutationRegisterArgs) => {
+    const newUser = await UserService.registerUser(args);
+
+    return newUser;
+  },
+
+  addAdmin: async (_: any, args: MutationAddAdminArgs, _context: any) => {
+    const addAdmin = await AdminService.addAdmin(args);
+
+    return addAdmin;
+  },
+
   addUserInformation: async (_: any, args: MutationAddUserInformationArgs) => {
     const addInformation = await UserService.addUserInformation(args);
 
     return addInformation;
+  },
+
+  verifyEmail: async (_: any, args: MutationVerifyEmailArgs, _context: any) => {
+    const verifyEmail = await UserService.verifyEmail(args);
+
+    return verifyEmail;
   },
 
   updateUserInformation: async (
@@ -194,37 +218,6 @@ const mutations = {
     const addQueue = await QueueService.addQueue(args);
 
     return addQueue;
-  },
-
-  addAdmin: async (_: any, args: MutationAddAdminArgs, _context: any) => {
-    const addAdmin = await AdminService.addAdmin(args);
-
-    return addAdmin;
-  },
-
-  loginAdmin: async (_: any, args: MutationLoginAdminArgs, context: any) => {
-    if (context.user.userRole !== "ADMIN") {
-      return throwCustomError(
-        "Access Denied: Insufficient Permissions. Contact your administrator for assistance.",
-        ErrorTypes.FORBIDDEN
-      );
-    }
-
-    const loginAdmin = await AdminService.loginAdmin(args);
-
-    return loginAdmin;
-  },
-
-  verifyEmail: async (_: any, args: MutationVerifyEmailArgs, _context: any) => {
-    const verifyEmail = await UserService.verifyEmail(args);
-
-    return verifyEmail;
-  },
-
-  loginRfid: async (_: any, args: MutationLoginRfidArgs, _context: any) => {
-    const loginRfid = await UserService.loginRfid(args);
-
-    return loginRfid;
   },
 };
 

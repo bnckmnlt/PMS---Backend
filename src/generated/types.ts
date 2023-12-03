@@ -526,6 +526,7 @@ export type TransactionDetails = {
   __typename?: 'TransactionDetails';
   _tid: Scalars['ID']['output'];
   createdAt: Scalars['String']['output'];
+  patient?: Maybe<Patient>;
   patientDetails?: Maybe<PatientVisit>;
   paymentDetails?: Maybe<PaymentDetails>;
   status: TransactionStatus;
@@ -1031,6 +1032,7 @@ export type SubscriptionResolvers<ContextType = any, ParentType extends Resolver
 export type TransactionDetailsResolvers<ContextType = any, ParentType extends ResolversParentTypes['TransactionDetails'] = ResolversParentTypes['TransactionDetails']> = {
   _tid?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  patient?: Resolver<Maybe<ResolversTypes['Patient']>, ParentType, ContextType>;
   patientDetails?: Resolver<Maybe<ResolversTypes['PatientVisit']>, ParentType, ContextType>;
   paymentDetails?: Resolver<Maybe<ResolversTypes['PaymentDetails']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['TransactionStatus'], ParentType, ContextType>;

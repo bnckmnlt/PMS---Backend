@@ -5,6 +5,7 @@ import {
   Generated,
   JoinColumn,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Patient } from "./Patient";
@@ -30,8 +31,10 @@ export class PatientVisit extends BaseEntity {
   @ManyToOne(() => Patient, (patient) => patient.visits)
   patient: Patient;
 
-  @ManyToOne(() => TransactionDetails)
-  @JoinColumn()
+  @OneToOne(
+    () => TransactionDetails,
+    (transaction) => transaction.patientDetails
+  )
   transaction: TransactionDetails;
 
   @Column("text")

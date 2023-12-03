@@ -38,7 +38,7 @@ class PatientService {
     });
   }
 
-  //[ ] Get patient record
+  //[x] Get patient record
   async getPatient({ contactNumber, cardId, _id }: QueryGetPatientArgs) {
     const input: any = {
       contactNumber,

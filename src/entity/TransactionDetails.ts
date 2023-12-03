@@ -4,11 +4,13 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  // ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { PaymentDetails } from "./PaymentDetails";
 import { PatientVisit } from "./PatientVisit";
+import { Patient } from "./Patient";
 
 @Entity("transactions")
 export class TransactionDetails extends BaseEntity {
@@ -25,9 +27,12 @@ export class TransactionDetails extends BaseEntity {
   @JoinColumn()
   paymentDetails: PaymentDetails;
 
-  @ManyToOne(() => PatientVisit, (patient) => patient.transaction)
+  @OneToOne(() => PatientVisit, (patient) => patient.transaction)
   @JoinColumn()
   patientDetails: PatientVisit;
+
+  @ManyToOne(() => Patient, (patient) => patient.transactions)
+  patient: Patient;
 
   @Column("text", { default: new Date().toISOString() })
   createdAt!: string;

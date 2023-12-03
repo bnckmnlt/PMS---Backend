@@ -2,10 +2,13 @@ import {
   BaseEntity,
   Column,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Patient } from "./Patient";
+import { PatientVisit } from "./PatientVisit";
 
 @Entity("appointments")
 export class Appointment extends BaseEntity {
@@ -18,8 +21,12 @@ export class Appointment extends BaseEntity {
   @Column("varchar", { length: 255 })
   additionalInfo!: string;
 
-  @OneToOne(() => Patient, (patient) => patient.appointment)
+  @ManyToOne(() => Patient, (patient) => patient.appointment)
   patientDetails: Patient;
+
+  @OneToOne(() => PatientVisit)
+  @JoinColumn()
+  visitDetail: PatientVisit;
 
   @Column("text", { default: new Date().toISOString() })
   createdAt!: string;

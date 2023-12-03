@@ -8,7 +8,6 @@ import {
   QueryGetTransactionArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
-import { publishTransactionCompleted } from "../graphql/subscriptions";
 import { PatientVisit } from "../entity/PatientVisit";
 
 class TransactionService {
@@ -102,6 +101,15 @@ class TransactionService {
     await queryRunner.startTransaction();
     try {
       const getPatient = await PatientVisit.findOne({
+        relations: {
+          transaction: {
+            paymentDetails: true,
+          },
+          patient: {
+            appointment: true,
+            transactions: true,
+          },
+        },
         where: { _id: inputs._id },
       });
 
@@ -112,49 +120,13 @@ class TransactionService {
         );
       }
 
-      const transaction = await TransactionDetails.findOne({
-        relations: {
-          patientDetails: {
-            patient: {
-              appointment: true,
-            },
-            doctor: {
-              userInformation: true,
-            },
-            transaction: {
-              paymentDetails: true,
-            },
-          },
-          paymentDetails: true,
-        },
-        where: [
-          {
-            patientDetails: {
-              _id: inputs._id,
-            },
-          },
-        ],
-      });
-
-      if (transaction) {
-        return throwCustomError(
-          "Transaction already exists",
-          ErrorTypes.CONFLICT
-        );
-      }
-
       const createTransaction = TransactionDetails.create({
         patientDetails: getPatient,
+        patient: getPatient.patient,
       });
 
       const transactionResponse =
         await queryRunner.manager.save(createTransaction);
-
-      await queryRunner.manager.update(
-        PatientVisit,
-        { _id: getPatient._id },
-        { transaction: transactionResponse }
-      );
 
       const paymentDetails = await PaymentDetails.findOne({
         relations: {
@@ -319,10 +291,9 @@ class TransactionService {
         );
       }
 
-      publishTransactionCompleted(getTransaction);
-
       await queryRunner.manager.remove(getTransaction);
       await queryRunner.manager.remove(getPayment);
+
       await queryRunner.commitTransaction();
 
       return {

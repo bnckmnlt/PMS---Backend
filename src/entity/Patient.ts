@@ -24,10 +24,7 @@ export class Patient extends BaseEntity {
   @JoinColumn()
   appointment: Appointment;
 
-  @OneToMany(
-    () => TransactionDetails,
-    (transaction) => transaction.patientDetails
-  )
+  @OneToMany(() => TransactionDetails, (transaction) => transaction.patient)
   @JoinColumn()
   transactions: TransactionDetails[];
 

@@ -171,6 +171,13 @@ class UserService {
       );
     }
 
+    if (!verifyUser.userInformation) {
+      return throwCustomError(
+        "Please verify your account to proceed",
+        ErrorTypes.FORBIDDEN
+      );
+    }
+
     const {
       userInformation: { _id, user, ...userInformation },
     } = verifyUser;
@@ -213,15 +220,7 @@ class UserService {
     };
   }
 
-  // async loginRfidAdmin({cardId}: MutationLoginRfidArgs) {
-
-  //   return {
-  //     code: 200,
-  //     success: true,
-  //     message: "Logged in successfully"
-  //   }
-  // }
-
+  //[x] Login using Rfid; done
   async loginRfid({ cardId }: MutationLoginRfidArgs) {
     const getUser = await User.findOne({
       relations: {
@@ -238,6 +237,13 @@ class UserService {
       return throwCustomError(
         "No user record matches the input criteria",
         ErrorTypes.NOT_FOUND
+      );
+    }
+
+    if (!getUser.userInformation) {
+      return throwCustomError(
+        "Please verify your account to proceed",
+        ErrorTypes.FORBIDDEN
       );
     }
 
