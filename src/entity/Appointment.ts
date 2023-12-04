@@ -18,9 +18,6 @@ export class Appointment extends BaseEntity {
   @Column("text")
   schedule!: string;
 
-  @Column("varchar", { length: 255 })
-  additionalInfo!: string;
-
   @ManyToOne(() => Patient, (patient) => patient.appointment)
   patientDetails: Patient;
 

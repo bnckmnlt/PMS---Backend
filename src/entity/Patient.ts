@@ -4,7 +4,6 @@ import {
   Column,
   BaseEntity,
   PrimaryGeneratedColumn,
-  OneToOne,
   JoinColumn,
   OneToMany,
 } from "typeorm";
@@ -20,9 +19,9 @@ export class Patient extends BaseEntity {
   @Column("varchar", { length: 255, default: "" })
   cardId!: string;
 
-  @OneToOne(() => Appointment, (appointment) => appointment.patientDetails)
+  @OneToMany(() => Appointment, (appointment) => appointment.patientDetails)
   @JoinColumn()
-  appointment: Appointment;
+  appointment: Appointment[];
 
   @OneToMany(() => TransactionDetails, (transaction) => transaction.patient)
   @JoinColumn()

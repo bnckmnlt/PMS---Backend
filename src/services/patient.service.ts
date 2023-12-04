@@ -16,6 +16,7 @@ import { PatientInQueue } from "../entity/PatientInQueue";
 import { Queue } from "../entity/Queue";
 import { PatientVisit } from "../entity/PatientVisit";
 import { Between } from "typeorm";
+import { Appointment } from "../entity/Appointment";
 
 class PatientService {
   //[x] All patients; Done
@@ -59,7 +60,14 @@ class PatientService {
         transactions: {
           paymentDetails: true,
         },
-        appointment: true,
+        appointment: {
+          patientDetails: true,
+          visitDetail: {
+            doctor: {
+              userInformation: true,
+            },
+          },
+        },
       },
       where: [
         { _id: input._id },
@@ -89,7 +97,15 @@ class PatientService {
       relations: {
         patient: {
           transactions: true,
-          appointment: true,
+          appointment: {
+            patientDetails: true,
+            visitDetail: {
+              doctor: {
+                userInformation: true,
+              },
+              patient: true,
+            },
+          },
           visits: true,
         },
         transaction: {
@@ -470,6 +486,7 @@ class PatientService {
   async updatePatient({ input }: MutationUpdatePatientArgs) {
     const inputs: any = {
       _id: input?._id,
+      cardId: input?.cardId,
       firstName: input?.firstName,
       lastName: input?.lastName,
       middleName: input?.middleName,
@@ -525,6 +542,7 @@ class PatientService {
     await Patient.update(
       { _id: patient._id },
       {
+        cardId: inputs.cardId || undefined,
         firstName: inputs?.firstName || undefined,
         lastName: inputs?.lastName || undefined,
         middleName: inputs?.middleName || undefined,
@@ -607,6 +625,83 @@ class PatientService {
         );
       }
 
+      const appointment = await Appointment.findOne({
+        relations: { visitDetail: true },
+        where: {
+          visitDetail: {
+            _id: patient._id,
+          },
+        },
+      });
+
+      if (appointment) {
+        await queryRunner.manager.update(PatientVisit, patient._id, {
+          allergy: inputs?.allergy,
+          diagnosis: inputs?.diagnosis,
+          prescription: inputs?.prescription,
+          status: inputs.status,
+          updatedAt: new Date().toISOString(),
+        });
+
+        const notification = await Notification.findOne({
+          relations: {
+            user: true,
+            payload: {
+              patient: true,
+            },
+          },
+          where: {
+            payload: {
+              _id: patient._id,
+            },
+          },
+        });
+
+        if (!notification) {
+          return throwCustomError(
+            "Notification record already exists",
+            ErrorTypes.CONFLICT
+          );
+        }
+
+        await queryRunner.manager.update(Notification, notification._id, {
+          type: "COMPLETED",
+          title: "Appointment completed",
+          description: `An Appointment has been completed by Dr. ${patient.doctor.userInformation.lastName}`,
+          updatedAt: new Date().toISOString(),
+        });
+
+        await queryRunner.commitTransaction();
+
+        const patientResponse = await Patient.findOne({
+          relations: {
+            visits: {
+              doctor: {
+                userInformation: true,
+              },
+              transaction: true,
+              patient: true,
+            },
+            transactions: {
+              paymentDetails: true,
+            },
+            appointment: {
+              patientDetails: true,
+            },
+          },
+          where: {
+            visits: { _id: input?._id },
+          },
+        });
+
+        return {
+          code: 200,
+          success: true,
+          message: "Patiend record updated",
+          patient: patientResponse,
+        };
+      }
+
       await queryRunner.manager.update(PatientVisit, patient._id, {
         allergy: inputs?.allergy,
         diagnosis: inputs?.diagnosis,
@@ -647,30 +742,28 @@ class PatientService {
         updatedAt: new Date().toISOString(),
       });
 
-      if (!patient.patient.appointment) {
-        const patientInQueue = await PatientInQueue.findOne({
-          relations: {
-            patient: true,
+      const patientInQueue = await PatientInQueue.findOne({
+        relations: {
+          patient: true,
+        },
+        where: {
+          patient: {
+            _id: patient._id,
           },
-          where: {
-            patient: {
-              _id: patient._id,
-            },
-          },
-        });
+        },
+      });
 
-        if (!patientInQueue) {
-          return throwCustomError(
-            "No patient in queue match the input criteria",
-            ErrorTypes.NOT_FOUND
-          );
-        }
-
-        await queryRunner.manager.update(PatientInQueue, patientInQueue, {
-          isDone: true,
-          updatedAt: new Date().toISOString(),
-        });
+      if (!patientInQueue) {
+        return throwCustomError(
+          "No patient in queue match the input criteria",
+          ErrorTypes.NOT_FOUND
+        );
       }
+
+      await queryRunner.manager.update(PatientInQueue, patientInQueue, {
+        isDone: true,
+        updatedAt: new Date().toISOString(),
+      });
 
       await queryRunner.commitTransaction();
 
@@ -824,6 +917,47 @@ class PatientService {
           "No queue records match the input criteria",
           ErrorTypes.NOT_FOUND
         );
+      }
+
+      const appointment = await Appointment.findOne({
+        relations: {
+          patientDetails: {
+            visits: {
+              doctor: {
+                userInformation: true,
+              },
+            },
+            transactions: {
+              paymentDetails: true,
+            },
+          },
+          visitDetail: {
+            doctor: {
+              userInformation: true,
+            },
+          },
+        },
+        where: {
+          patientDetails: {
+            _id: patient._id,
+          },
+        },
+      });
+
+      if (appointment) {
+        await queryRunner.manager.remove(appointment);
+        await queryRunner.manager.remove(notification);
+        await queryRunner.manager.remove(inQueue);
+        await queryRunner.manager.remove(patientVisit);
+        await queryRunner.manager.remove(patient);
+
+        await queryRunner.commitTransaction();
+
+        return {
+          code: 200,
+          success: true,
+          message: "Patient deleted",
+        };
       }
 
       await queryRunner.manager.remove(notification);

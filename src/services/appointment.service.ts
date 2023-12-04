@@ -10,6 +10,8 @@ import {
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import { User } from "../entity/User";
 import { PatientVisit } from "../entity/PatientVisit";
+import { Between } from "typeorm";
+import { Notification } from "../entity/Notification";
 
 class AppointmentService {
   async appointments() {
@@ -23,6 +25,11 @@ class AppointmentService {
           },
           transactions: {
             paymentDetails: true,
+          },
+        },
+        visitDetail: {
+          doctor: {
+            userInformation: true,
           },
         },
       },
@@ -52,6 +59,11 @@ class AppointmentService {
             paymentDetails: true,
           },
         },
+        visitDetail: {
+          doctor: {
+            userInformation: true,
+          },
+        },
       },
       where: [
         { _apid: input._apid },
@@ -76,33 +88,17 @@ class AppointmentService {
   }
 
   async setAppointment({ input }: MutationSetAppointmentArgs) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
     const queryRunner = DevelopmentDataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const patient = await Patient.findOne({
-        relations: {
-          appointment: true,
-          visits: {
-            doctor: {
-              userInformation: true,
-            },
-          },
-        },
-        where: [
-          { emailAddress: input?.emailAddress },
-          { contactNumber: input?.contactNumber },
-        ],
-      });
-
-      if (patient) {
-        return throwCustomError(
-          "Patient record already exists",
-          ErrorTypes.CONFLICT
-        );
-      }
-
       const consultant = await User.findOne({
         relations: {
           userInformation: true,
@@ -116,6 +112,88 @@ class AppointmentService {
         return throwCustomError("Consultant not found", ErrorTypes.NOT_FOUND);
       }
 
+      const patient = await Patient.findOne({
+        relations: {
+          appointment: true,
+          visits: {
+            doctor: {
+              userInformation: true,
+            },
+          },
+        },
+        where: [
+          {
+            emailAddress: input?.emailAddress,
+            contactNumber: input?.contactNumber,
+          },
+        ],
+      });
+
+      if (patient) {
+        const newPatientVisit = PatientVisit.create({
+          doctor: consultant,
+          patient: patient,
+          bodyTemp: input?.bodyTemp || 0,
+          heartRate: input?.heartRate || 0,
+          weight: input?.weight || 0,
+          height: input?.height || 0,
+          diagnosis: "",
+          prescription: "",
+        });
+
+        const newPatientVisitResponse =
+          await queryRunner.manager.save(newPatientVisit);
+
+        const addNotification = Notification.create({
+          type: "ADDED",
+          user: newPatientVisitResponse.doctor,
+          title: "Appointment booked",
+          description: `An appointment has been booked for ${input?.schedule}`,
+          payload: newPatientVisitResponse,
+        });
+
+        await queryRunner.manager.save(addNotification);
+
+        const appointment = await Appointment.findOne({
+          relations: {
+            patientDetails: true,
+            visitDetail: true,
+          },
+          where: {
+            visitDetail: {
+              patient: {
+                _id: patient._id,
+              },
+              createdAt: Between(today.toISOString(), tomorrow.toISOString()),
+            },
+          },
+        });
+
+        if (appointment) {
+          return throwCustomError(
+            "Appointment record already exists",
+            ErrorTypes.CONFLICT
+          );
+        }
+
+        const newAppointment = Appointment.create({
+          schedule: input?.schedule,
+          patientDetails: patient,
+          visitDetail: newPatientVisitResponse,
+        });
+
+        const newAppointmentResponse =
+          await queryRunner.manager.save(newAppointment);
+
+        return {
+          code: 200,
+          success: true,
+          message: "Appointment confirmed",
+          appointment: newAppointmentResponse,
+          patient: patient,
+        };
+      }
+
       const newPatient = Patient.create({
         firstName: input?.firstName,
         lastName: input?.lastName,
@@ -127,6 +205,8 @@ class AppointmentService {
         gender: input?.gender,
       });
 
+      const newPatientResponse = await queryRunner.manager.save(newPatient);
+
       const newPatientVisit = PatientVisit.create({
         doctor: consultant,
         patient: newPatient,
@@ -134,15 +214,40 @@ class AppointmentService {
         heartRate: input?.heartRate || 0,
         weight: input?.weight || 0,
         height: input?.height || 0,
-        diagnosis: "",
-        prescription: "",
       });
 
-      await queryRunner.manager.save(newPatientVisit);
-      const newPatientResponse = await queryRunner.manager.save(newPatient);
+      const newPatientVisitResponse =
+        await queryRunner.manager.save(newPatientVisit);
 
-      const appointment = await Appointment.findOneBy({
-        _apid: newPatientResponse._id,
+      const addNotification = Notification.create({
+        type: "ADDED",
+        user: newPatientVisitResponse.doctor,
+        title: "Appointment booked",
+        description: `An appointment has been booked for ${new Date(
+          input?.schedule as string
+        ).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })}`,
+        payload: newPatientVisitResponse,
+      });
+
+      await queryRunner.manager.save(addNotification);
+
+      const appointment = await Appointment.findOne({
+        relations: {
+          patientDetails: true,
+          visitDetail: true,
+        },
+        where: {
+          visitDetail: {
+            patient: {
+              _id: newPatientResponse._id,
+            },
+            createdAt: Between(today.toISOString(), tomorrow.toISOString()),
+          },
+        },
       });
 
       if (appointment) {
@@ -154,20 +259,21 @@ class AppointmentService {
 
       const newAppointment = Appointment.create({
         schedule: input?.schedule,
-        additionalInfo: input?.additionalInfo,
         patientDetails: newPatientResponse,
+        visitDetail: newPatientVisitResponse,
       });
 
       const newAppointmentResponse =
         await queryRunner.manager.save(newAppointment);
 
       await queryRunner.commitTransaction();
+
       return {
         code: 200,
         success: true,
         message: "Appointment confirmed",
         appointment: newAppointmentResponse,
-        patient: newPatientResponse,
+        patient: newPatient,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -230,7 +336,6 @@ class AppointmentService {
       _apid,
       contactNumber,
     };
-
     const queryRunner = DevelopmentDataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -239,6 +344,7 @@ class AppointmentService {
       const appointment = await Appointment.findOne({
         relations: {
           patientDetails: true,
+          visitDetail: true,
         },
         where: [
           { _apid: input._apid },

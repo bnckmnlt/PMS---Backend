@@ -80,6 +80,19 @@ type UserInformation {
   updatedAt: String!
 }
 
+input AddUser {
+  email: String!
+  password: String!
+  userRole: UserRoles!
+  image: String!
+  cardId: String!
+  firstName: String!
+  lastName: String!
+  middleName: String!
+  contactNumber: String!
+  specialization: Specialization
+}
+
 input AddUserInformation {
   _id: ID!
   image: String
@@ -107,7 +120,7 @@ input UpdateUserInformation {
 type Patient {
   _id: ID!
   cardId: String
-  appointment: Appointment
+  appointment: [Appointment]
   transactions: [TransactionDetails]
   visits: [PatientVisit]
   firstName: String!
@@ -168,6 +181,7 @@ input AddExistingPatient {
 
 input UpdatePatient {
   _id: ID!
+  cardId: String
   firstName: String
   lastName: String
   middleName: String
@@ -189,15 +203,14 @@ input AddPatientResult {
 type Appointment {
   _apid: ID!
   schedule: String!
-  additionalInfo: String!
   patientDetails: Patient!
+  visitDetail: PatientVisit
   createdAt: String!
   updatedAt: String!
 }
 
 input SetAppointment {
   schedule: String!
-  additionalInfo: String!
   firstName: String!
   lastName: String!
   middleName: String!
@@ -305,6 +318,7 @@ type UserPayload implements MutationResponse {
   success: Boolean!
   message: String!
   user: User
+  userInformation: UserInformation
 }
 
 type UserInfoPayload implements MutationResponse {
@@ -408,6 +422,7 @@ type Mutation {
   removeUser(id: String!): AuthPayload!
   deleteAccount(id: String!, password: String!): AuthPayload!
   loginRfid(cardId: String!): AuthPayload!
+  addUser(input: AddUser): UserPayload!
 
   setAppointment(input: SetAppointment): AppointmentPayload!
   updateAppointment(

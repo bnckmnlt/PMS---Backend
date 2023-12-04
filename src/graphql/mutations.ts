@@ -25,6 +25,7 @@ import {
   MutationUpdateUserInformationArgs,
   MutationAddExistingPatientArgs,
   MutationLoginRfidArgs,
+  MutationAddUserArgs,
 } from "../generated/types";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import QueueService from "../services/queue.service";
@@ -53,6 +54,12 @@ const mutations = {
     const newUser = await UserService.registerUser(args);
 
     return newUser;
+  },
+
+  addUser: async (_: any, args: MutationAddUserArgs) => {
+    const addUser = await UserService.addUser(args);
+
+    return addUser;
   },
 
   addAdmin: async (_: any, args: MutationAddAdminArgs, _context: any) => {

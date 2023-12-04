@@ -1,6 +1,7 @@
 import * as Joi from "joi";
 import * as bcrypt from "bcrypt";
 import {
+  MutationAddUserArgs,
   MutationAddUserInformationArgs,
   MutationDeleteAccountArgs,
   MutationLoginRfidArgs,
@@ -16,6 +17,7 @@ import { User } from "../entity/User";
 import { UserInformation } from "../entity/UserInformation";
 import throwCustomError, { ErrorTypes } from "../helpers/error-handler.helper";
 import { authUtilities } from "../helpers/auth.helper";
+import { DevelopmentDataSource } from "../data-source";
 
 const registerSchema = Joi.object({
   email: Joi.string()
@@ -104,6 +106,79 @@ class UserService {
       message: "User information located",
       userInformation: userInfo,
     };
+  }
+
+  async addUser({ input }: MutationAddUserArgs) {
+    const queryRunner = DevelopmentDataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const user = await User.findOne({
+        relations: {
+          userInformation: true,
+        },
+        where: [
+          {
+            email: input?.email,
+          },
+          {
+            userInformation: {
+              contactNumber: input?.contactNumber,
+            },
+          },
+          {
+            userInformation: {
+              cardId: input?.cardId,
+            },
+          },
+        ],
+      });
+
+      if (user) {
+        return throwCustomError(
+          "User record already exists",
+          ErrorTypes.CONFLICT
+        );
+      }
+
+      const createUser = User.create({
+        email: input?.email,
+        password: input?.password,
+        userRole: input?.userRole || undefined,
+      });
+
+      const createUserResponse = await queryRunner.manager.save(createUser);
+
+      const addUserInformation = UserInformation.create({
+        user: createUserResponse,
+        image: input?.image || undefined,
+        cardId: input?.cardId || undefined,
+        firstName: input?.firstName,
+        lastName: input?.lastName,
+        middleName: input?.middleName,
+        contactNumber: input?.contactNumber,
+        specialization: input?.specialization || undefined,
+      });
+
+      const userInformationResponse =
+        await queryRunner.manager.save(addUserInformation);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        code: 200,
+        success: true,
+        message: "User added",
+        user: createUserResponse,
+        userInformation: userInformationResponse,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      return throwCustomError(error, ErrorTypes.BAD_REQUEST);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // [x] Register User; Done
